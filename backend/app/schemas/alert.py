@@ -4,7 +4,7 @@ from typing import Optional
 
 
 class AlertConditionCreate(BaseModel):
-    metric: str = Field(..., pattern="^(price|rsi|macd_hist|signal|pct_change)$")
+    metric: str = Field(..., pattern="^(price|rsi|macd_hist|signal|pct_change|rvol)$")
     operator: str = Field(..., pattern="^(gt|lt|crosses_above|eq)$")
     value: float
 

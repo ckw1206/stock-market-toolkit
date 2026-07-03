@@ -72,7 +72,7 @@ export interface NotificationSettings {
 }
 
 export interface AlertConditionCreate {
-  metric: "price" | "rsi" | "macd_hist" | "signal" | "pct_change";
+  metric: "price" | "rsi" | "macd_hist" | "signal" | "pct_change" | "rvol";
   operator: "gt" | "lt" | "crosses_above" | "eq";
   value: number;
 }

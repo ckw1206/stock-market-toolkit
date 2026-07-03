@@ -22,6 +22,7 @@ from app.services.mailer import send_email
 from app.services.notification.discord import _send_discord_notification
 from app.services.notification.email import render_alert_email
 from app.utils.numeric import _clean
+from app.services.signals import signal_to_numeric
 
 log = logging.getLogger(__name__)
 
@@ -94,12 +95,19 @@ async def _get_indicators(symbol: str, period: str) -> dict:
     """Fetch latest indicator values for a symbol, cached via BE-2."""
     async def _load():
         import pandas_ta as ta
+        import math
+        from app.services.signals import compute_indicators, score_signals, signal_from_score
+
         df = await _get_ohlcv_df(symbol, period)
-        result = {"price": None, "rsi": None, "macd_hist": None, "macd_signal": None, "pct_change": None}
+        result = {"price": None, "rsi": None, "macd_hist": None, "macd_signal": None, "pct_change": None, "signal": None, "rvol": None}
         if df.empty:
             return result
 
         close = df["Close"]
+        high = df["High"]
+        low = df["Low"]
+        volume = df["Volume"]
+        n = len(close)
         price = float(close.iloc[-1])
         result["price"] = price
 
@@ -108,6 +116,7 @@ async def _get_indicators(symbol: str, period: str) -> dict:
             if rsi_series is not None and not rsi_series.empty:
                 result["rsi"] = float(rsi_series.iloc[-1])
 
+        macd_df = None
         if len(close) >= 26:
             macd_df = ta.macd(close, fast=12, slow=26, signal=9)
             if macd_df is not None and not macd_df.empty:
@@ -117,6 +126,21 @@ async def _get_indicators(symbol: str, period: str) -> dict:
         if len(close) >= 2:
             pct = ((float(close.iloc[-1]) - float(close.iloc[0])) / float(close.iloc[0])) * 100
             result["pct_change"] = pct
+
+        if len(close) >= 20:
+            indicators = compute_indicators(close, high, low, volume, n, macd_df)
+            result["rvol"] = indicators.get("rvol")
+            score, _ = score_signals(
+                bias=indicators.get("bias"),
+                macd_hist=indicators.get("macd_histogram"),
+                kdj_k=indicators.get("kdj_k"),
+                kdj_d=indicators.get("kdj_d"),
+                vol_ratio=indicators.get("volume_ratio"),
+                rvol=indicators.get("rvol"),
+                breakout=False,
+                high_52w=None,
+            )
+            result["signal"] = signal_to_numeric(signal_from_score(score))
 
         return result
 

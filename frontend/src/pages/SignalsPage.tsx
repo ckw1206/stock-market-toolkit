@@ -25,9 +25,18 @@ type AnalysisResponse = {
   signal?: string;
   confidence?: number;
   reasons?: string[];
-  indicators?: { bias?: number; volume_ratio?: number };
+  indicators?: {
+    bias?: number;
+    volume_ratio?: number;
+    rvol?: number;
+    high_52w?: number;
+    low_52w?: number;
+    pct_from_52w_high?: number;
+  };
   price?: number;
   timestamp?: string;
+  volume_spike?: boolean;
+  breakout?: boolean;
 };
 
 function mapAnalysisToSignal(data: AnalysisResponse, symbolOverride?: string): Signal {
@@ -54,6 +63,10 @@ function mapAnalysisToSignal(data: AnalysisResponse, symbolOverride?: string): S
     timestamp: data.timestamp ?? new Date().toISOString(),
     strength: Math.round(confidence * 100),
     description: `[${data.signal ?? "NEUTRAL"}] ${reasons} — confidence ${(confidence * 100).toFixed(0)}%`,
+    rvol: indicators?.rvol,
+    volume_spike: data.volume_spike,
+    breakout: data.breakout,
+    pct_from_52w_high: indicators?.pct_from_52w_high,
   } satisfies Signal;
 }
 

@@ -84,7 +84,15 @@ export default function SignalCard({
             {pending ? (
               <Badge variant="outline">{t("common.signals.noSignal")}</Badge>
             ) : (
-              <Badge variant="secondary">{SIGNAL_TYPE_LABELS[signal.signal_type]}</Badge>
+              <>
+                <Badge variant="secondary">{SIGNAL_TYPE_LABELS[signal.signal_type]}</Badge>
+                {signal.breakout && <Badge variant="default">{t("common.signals.breakout")}</Badge>}
+                {signal.rvol != null && (
+                  <Badge variant={signal.rvol > 2 ? "destructive" : "outline"}>
+                    {t("common.signals.rvolBadge", { value: signal.rvol.toFixed(1) })}
+                  </Badge>
+                )}
+              </>
             )}
           </div>
           <div className="flex items-center gap-1">
@@ -142,6 +150,15 @@ export default function SignalCard({
               <div>
                 <p className="mb-0.5 text-xs uppercase text-muted-foreground">{t("common.fields.price")}</p>
                 <p className="font-mono font-semibold tabular-nums">${fmt(signal.price)}</p>
+                {signal.pct_from_52w_high != null && (() => {
+                  const val = signal.pct_from_52w_high;
+                  const signedVal = `${val >= 0 ? "+" : ""}${val.toFixed(1)}%`;
+                  return (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {t("common.signals.pctFrom52wHigh", { value: signedVal })}
+                    </p>
+                  );
+                })()}
               </div>
               <div className="text-right">
                 <p className="mb-0.5 text-xs uppercase text-muted-foreground">{t("common.signals.signalStrength")}</p>

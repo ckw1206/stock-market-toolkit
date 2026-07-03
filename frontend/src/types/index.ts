@@ -131,4 +131,8 @@ export interface Signal {
   timestamp: string;
   strength: number; // 0-100
   description: string;
+  rvol?: number;
+  volume_spike?: boolean;
+  breakout?: boolean;
+  pct_from_52w_high?: number;
 }
