@@ -11,6 +11,13 @@ from app.services.signals import (
     NoDataError,
     ThinHistoryError,
 )
+from app.services.backtest import (
+    backtest_signal,
+    ProviderUnavailableError as BacktestProviderUnavailableError,
+    NoDataError as BacktestNoDataError,
+    ThinHistoryError as BacktestThinHistoryError,
+)
+from app.services.cache import cached
 
 log = logging.getLogger(__name__)
 
@@ -63,6 +70,32 @@ async def get_batch_signals(
                 {"symbol": sym, "error": f"Could not analyze {sym}: {reason}"}
             )
     return {"signals": results, "errors": errors}
+
+
+async def _backtest_signal(symbol: str, period: str = "2y") -> dict:
+    """Backtest historical signal performance (no auth dependency)."""
+    try:
+        return await cached(
+            key=f"backtest:{symbol.upper()}:{period}",
+            ttl=3600,
+            loader=lambda: backtest_signal(symbol, period=period),
+        )
+    except BacktestProviderUnavailableError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except BacktestNoDataError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except BacktestThinHistoryError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.get("/analysis/{symbol}/backtest")
+async def get_backtest(
+    symbol: str,
+    period: str = Query("2y"),
+    current_user: User = Depends(get_current_user),
+):
+    """Backtest historical BUY/SELL signal hit rate and average return."""
+    return await _backtest_signal(symbol, period)
 
 
 @router.get("/analysis/{symbol}")

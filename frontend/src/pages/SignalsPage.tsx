@@ -18,7 +18,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
-import type { Signal } from "@/types";
+import type { Signal, BacktestStats } from "@/types";
 
 type AnalysisResponse = {
   symbol?: string;
@@ -127,13 +127,31 @@ export default function SignalsPage() {
           ? { signals: raw as AnalysisResponse[], errors: [] as { symbol: string; error: string }[] }
           : (raw as { signals: AnalysisResponse[]; errors: { symbol: string; error: string }[] });
         const mapped = data.signals.map((d) => mapAnalysisToSignal(d));
-        setSignals(mapped);
         const errs = data.errors ?? [];
         setSignalErrors(Object.fromEntries(errs.map((e) => [e.symbol, e.error])));
         if (errs.length > 0) {
           const failedSymbols = errs.map((e) => e.symbol).join(", ");
           toast.error(t("signals.toast.loadFailed", { symbols: failedSymbols }));
         }
+
+        const backtestResults = await Promise.allSettled(
+          mapped.map((signal) =>
+            fetch(
+              `${import.meta.env.VITE_API_URL || ""}/api/analysis/${signal.symbol}/backtest`,
+              { headers: { Authorization: `Bearer ${token}` } },
+            ).then((r) => (r.ok ? r.json() : null))
+          ),
+        );
+
+        const signalsWithBacktest = mapped.map((signal, i) => {
+          const result = backtestResults[i];
+          if (result.status === "fulfilled" && result.value != null) {
+            return { ...signal, backtestStats: result.value as BacktestStats };
+          }
+          return signal;
+        });
+
+        setSignals(signalsWithBacktest);
       } catch (err) {
         setSignals([]);
         setSignalErrors({});

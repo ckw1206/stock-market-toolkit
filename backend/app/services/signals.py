@@ -3,6 +3,8 @@
 import math
 from typing import TypedDict
 
+import numpy as np
+import pandas as pd
 import pandas_ta as ta
 
 from app.providers import market_provider
@@ -224,6 +226,69 @@ def score_signals(
         reasons.append("Near 52-week high (no volume confirmation)")
 
     return score, reasons
+
+
+def score_series(df: pd.DataFrame) -> pd.Series:
+    """Compute the composite signal score for every row in an OHLCV DataFrame.
+
+    Uses ONLY data up to and including each row — no lookahead. Replicates the
+    same scoring legs as ``score_signals``:
+      1. BIAS: ±0.25 when (close-SMA20)/SMA20*100 is < -3 or > 3
+      2. MACD histogram sign: ±0.25
+      3. KDJ golden/death cross: ±0.25 (K>D BUY leg, K<D SELL leg)
+      4. Volume surge: ±0.25 when vol/20d-avg > 1.2, direction follows score so far
+      5. 52w breakout: +0.25 when close >= 0.98 * 252-bar rolling High AND rvol > 1.5
+
+    Returns a pd.Series of scores (float, range roughly -1.25 to +1.25).
+    Rows without enough lookback for a leg contribute 0 for that leg (same as None
+    in the scalar path).
+    """
+    close = df["Close"]
+    high = df["High"]
+    low = df["Low"]
+    volume = df["Volume"]
+
+    sma20 = ta.sma(close, length=20)
+    bias_vals = (close - sma20) / sma20 * 100
+    bias_vals = bias_vals.where(sma20.notna() & ~bias_vals.isna(), other=0.0)
+
+    macd_df = ta.macd(close, fast=12, slow=26, signal=9)
+    macd_hist = macd_df["MACDh_12_26_9"].fillna(0.0)
+
+    kdj_df = ta.stoch(high=high, low=low, close=close, k=14, d=3)
+    kdj_k = kdj_df["STOCHk_14_3_3"]
+    kdj_d = kdj_df["STOCHd_14_3_3"]
+    # Scalar path skips the KDJ leg when K or D is None; mirror that by only
+    # applying the leg where both are defined.
+    kdj_valid = kdj_k.notna() & kdj_d.notna()
+
+    vol_20 = volume.rolling(20).mean()
+    vol_ratio = volume / vol_20
+    vol_ratio = vol_ratio.where(vol_20.notna(), other=1.0)
+
+    score = pd.Series(0.0, index=df.index)
+
+    bias_mask_lt = bias_vals < -3
+    bias_mask_gt = bias_vals > 3
+    score = score + bias_mask_lt.astype(float) * 0.25 - bias_mask_gt.astype(float) * 0.25
+
+    score = score + (macd_hist > 0).astype(float) * 0.25 - (macd_hist < 0).astype(float) * 0.25
+
+    kdj_buying = kdj_valid & (kdj_k > kdj_d)
+    kdj_selling = kdj_valid & ~(kdj_k > kdj_d)
+    score = score + kdj_buying.astype(float) * 0.25 - kdj_selling.astype(float) * 0.25
+
+    vol_surge = vol_ratio > 1.2
+    score = score + vol_surge.astype(float) * np.sign(score) * 0.25
+
+    rolling_high_252 = high.rolling(window=252, min_periods=252).max()
+    near_high = close >= 0.98 * rolling_high_252
+    rvol = vol_ratio
+    breakout = near_high & (rvol > 1.5)
+    breakout = breakout.fillna(False)
+    score = score + breakout.astype(float) * 0.25
+
+    return score
 
 
 def build_signal_result(
