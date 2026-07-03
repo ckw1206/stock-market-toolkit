@@ -95,7 +95,6 @@ async def _get_indicators(symbol: str, period: str) -> dict:
     """Fetch latest indicator values for a symbol, cached via BE-2."""
     async def _load():
         import pandas_ta as ta
-        import math
         from app.services.signals import compute_indicators, score_signals, signal_from_score
 
         df = await _get_ohlcv_df(symbol, period)

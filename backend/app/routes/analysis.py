@@ -8,11 +8,9 @@ import pandas_ta as ta
 
 from app.services.signals import (
     compute_indicators,
-    compute_52w_metrics,
     is_breakout,
     score_signals,
     build_signal_result,
-    signal_from_score,
     MIN_HISTORY_BARS,
 )
 
