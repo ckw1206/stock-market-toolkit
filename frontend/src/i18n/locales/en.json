@@ -6,7 +6,8 @@
     "alerts": "Alerts",
     "settings": "Settings",
     "switchToChinese": "Switch to 中文",
-    "switchToEnglish": "Switch to English"
+    "switchToEnglish": "Switch to English",
+    "screener": "Screener"
   },
   "adminInvite": {
     "title": "Invitation Codes",
@@ -331,6 +332,11 @@
       "lastScan": "Last scan:",
       "buys": "BUYs",
       "sells": "SELLs"
+    },
+    "heatmap": {
+      "title": "Sector Heatmap",
+      "empty": "No scan yet — the heatmap appears after the first nightly signal scan",
+      "otherSector": "Other"
     }
   },
   "login": {
@@ -572,6 +578,36 @@
       "added": "{{symbol}} added to tracking",
       "addedNoData": "{{symbol}} added — no signal data available",
       "removed": "{{symbol}} removed from tracking"
+    }
+  },
+  "screener": {
+    "title": "Screener",
+    "scannedAt": "Scanned {{time}}",
+    "loadFailed": "Failed to load screener results",
+    "noMatches": "No stocks match the current filters",
+    "noScanYet": "No scan yet — results appear after the first nightly signal scan",
+    "resultCount": "{{count}} results",
+    "clearFilters": "Clear filters",
+    "filters": {
+      "signal": "Signal",
+      "any": "Any",
+      "rsiMin": "RSI min",
+      "rsiMax": "RSI max",
+      "rvolMin": "RVOL min",
+      "sector": "Sector",
+      "breakout": "Breakout",
+      "aboveSma50": "Above SMA50"
+    },
+    "columns": {
+      "symbol": "Symbol",
+      "signal": "Signal",
+      "score": "Score",
+      "price": "Price",
+      "rsi": "RSI",
+      "rvol": "RVOL",
+      "pctFrom52wHigh": "% off 52w high",
+      "pctChange1d": "1d %",
+      "sector": "Sector"
     }
   }
 }

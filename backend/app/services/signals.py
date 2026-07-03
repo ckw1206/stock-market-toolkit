@@ -120,6 +120,17 @@ def compute_indicators(
         _clean(float(sma50_val.iloc[-1])) if len(close_series) >= 50 and not math.isnan(sma50_val.iloc[-1]) else None
     )
 
+    # Last-bar percent change (bar-over-bar; daily change on daily data)
+    pct_change_1d = (
+        _clean(
+            (float(close_series.iloc[-1]) - float(close_series.iloc[-2]))
+            / float(close_series.iloc[-2])
+            * 100
+        )
+        if n >= 2 and float(close_series.iloc[-2]) != 0
+        else None
+    )
+
     return {
         "bias": bias,
         "kdj_k": kdj_k,
@@ -130,6 +141,7 @@ def compute_indicators(
         "rsi": latest_rsi,
         "sma20": _clean(latest_sma20),
         "sma50": latest_sma50,
+        "pct_change_1d": pct_change_1d,
     }
 
 

@@ -29,5 +29,13 @@ class ScanResult(Base):
     volume_spike = Column(Boolean, default=False)
     reasons = Column(JSON, nullable=True)
     rank = Column(Integer, nullable=True)
+    # Screener enrichment (populated at scan time)
+    rsi = Column(Float, nullable=True)
+    sma20 = Column(Float, nullable=True)
+    sma50 = Column(Float, nullable=True)
+    volume_ratio = Column(Float, nullable=True)
+    pct_from_52w_high = Column(Float, nullable=True)
+    pct_change_1d = Column(Float, nullable=True)
+    sector = Column(String, nullable=True)
 
     scan = relationship("SignalScan", back_populates="results")

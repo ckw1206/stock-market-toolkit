@@ -15,12 +15,32 @@ from app.services.signals import (
     ThinHistoryError,
 )
 from app.services.universe import get_scan_universe
+from app.services.cache import cached, cache_key
 
 log = logging.getLogger(__name__)
 
 
 def _now():
     return datetime.now(timezone.utc)
+
+
+async def get_sector(symbol: str) -> Optional[str]:
+    """Fetch a symbol's sector via the provider info call, cached for a day.
+
+    Returns None on any failure — the scan must never break on enrichment.
+    """
+    from app.providers import market_provider
+
+    async def _load():
+        info = await market_provider.get_info(symbol.upper())
+        value = info.value if hasattr(info, "value") else info
+        return (value or {}).get("sector")
+
+    try:
+        return await cached(cache_key("sector", symbol.upper()), ttl=86400, loader=_load)
+    except Exception as exc:
+        log.warning("Sector lookup failed for %s: %s", symbol, exc)
+        return None
 
 
 async def compute_signal_for_symbol(symbol: str, period: str = "3mo") -> Optional[dict]:
@@ -58,6 +78,7 @@ async def run_signal_scan(job_run_id: Optional[int] = None) -> dict:
             errors += 1
 
         if signal_data:
+            indicators = signal_data["indicators"]
             result = ScanResult(
                 scan=scan,
                 symbol=signal_data["symbol"],
@@ -65,10 +86,17 @@ async def run_signal_scan(job_run_id: Optional[int] = None) -> dict:
                 score=signal_data["score"],
                 confidence=signal_data["confidence"],
                 price=signal_data["price"],
-                rvol=signal_data["indicators"].get("rvol"),
+                rvol=indicators.get("rvol"),
                 breakout=signal_data["breakout"],
                 volume_spike=signal_data["volume_spike"],
                 reasons=signal_data["reasons"],
+                rsi=indicators.get("rsi"),
+                sma20=indicators.get("sma20"),
+                sma50=indicators.get("sma50"),
+                volume_ratio=indicators.get("volume_ratio"),
+                pct_from_52w_high=indicators.get("pct_from_52w_high"),
+                pct_change_1d=indicators.get("pct_change_1d"),
+                sector=await get_sector(symbol),
             )
             results.append(result)
             symbols_processed += 1

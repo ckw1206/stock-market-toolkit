@@ -53,6 +53,7 @@ async def test_run_signal_scan_ranks_buys_and_sells():
         patch("app.services.top_signals.get_scan_universe", AsyncMock(return_value=["AAPL", "MSFT", "GOOGL", "AMZN"])),
         patch("app.services.top_signals.compute_signal_for_symbol", AsyncMock(side_effect=mock_results)),
         patch("app.services.top_signals.get_settings") as mock_settings,
+        patch("app.services.top_signals.get_sector", AsyncMock(return_value="Technology")),
     ):
         mock_db = MagicMock()
         mock_db.execute = AsyncMock()
@@ -86,6 +87,7 @@ async def test_run_signal_scan_tolerates_provider_failure():
         patch("app.services.top_signals.get_scan_universe", AsyncMock(return_value=["AAPL", "FAIL", "GOOGL"])),
         patch("app.services.top_signals.compute_signal_for_symbol", mock_signal),
         patch("app.services.top_signals.get_settings") as mock_settings,
+        patch("app.services.top_signals.get_sector", AsyncMock(return_value="Technology")),
     ):
         mock_db = MagicMock()
         mock_db.execute = AsyncMock()

@@ -104,3 +104,80 @@ export async function getTopSignals(limit: number = 10): Promise<TopSignalsData>
   });
   return res.data;
 }
+
+export interface ScreenerItem {
+  symbol: string;
+  signal: string;
+  score: number;
+  confidence: number;
+  price: number | null;
+  rvol: number | null;
+  breakout: boolean;
+  volume_spike: boolean;
+  rsi: number | null;
+  sma20: number | null;
+  sma50: number | null;
+  volume_ratio: number | null;
+  pct_from_52w_high: number | null;
+  pct_change_1d: number | null;
+  sector: string | null;
+  rank: number | null;
+}
+
+export interface ScreenerData {
+  scanned_at: string | null;
+  count: number;
+  results: ScreenerItem[];
+}
+
+export interface ScreenerFilters {
+  signal?: string;
+  rsi_min?: number;
+  rsi_max?: number;
+  rvol_min?: number;
+  breakout?: boolean;
+  price_min?: number;
+  price_max?: number;
+  pct_from_52w_high_min?: number;
+  above_sma50?: boolean;
+  sector?: string;
+  sort?: string;
+  order?: "asc" | "desc";
+  limit?: number;
+}
+
+export async function getScreener(filters: ScreenerFilters): Promise<ScreenerData> {
+  const params = Object.fromEntries(
+    Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+  );
+  const res = await axios.get(`${API}/api/screener`, {
+    params,
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
+export interface HeatmapSymbol {
+  symbol: string;
+  pct_change_1d: number | null;
+  price: number | null;
+  signal: string;
+  rvol: number | null;
+}
+
+export interface HeatmapSector {
+  sector: string;
+  symbols: HeatmapSymbol[];
+}
+
+export interface HeatmapData {
+  scanned_at: string | null;
+  sectors: HeatmapSector[];
+}
+
+export async function getHeatmap(): Promise<HeatmapData> {
+  const res = await axios.get(`${API}/api/heatmap`, {
+    headers: authHeaders(),
+  });
+  return res.data;
+}

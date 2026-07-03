@@ -6,7 +6,8 @@
     "alerts": "警報",
     "settings": "設定",
     "switchToChinese": "切換至中文",
-    "switchToEnglish": "切換至英文"
+    "switchToEnglish": "切換至英文",
+    "screener": "選股器"
   },
   "adminInvite": {
     "title": "邀請碼",
@@ -331,6 +332,11 @@
       "lastScan": "最後掃描：",
       "buys": "買入",
       "sells": "賣出"
+    },
+    "heatmap": {
+      "title": "產業熱力圖",
+      "empty": "尚無掃描資料 — 首次夜間訊號掃描後即會顯示熱力圖",
+      "otherSector": "其他"
     }
   },
   "login": {
@@ -572,6 +578,36 @@
       "added": "{{symbol}} 已加入追蹤",
       "addedNoData": "{{symbol}} 已新增 — 無信號資料",
       "removed": "{{symbol}} 已從追蹤移除"
+    }
+  },
+  "screener": {
+    "title": "選股器",
+    "scannedAt": "掃描於 {{time}}",
+    "loadFailed": "無法載入選股結果",
+    "noMatches": "沒有符合目前篩選條件的股票",
+    "noScanYet": "尚無掃描資料 — 首次夜間訊號掃描後即會顯示結果",
+    "resultCount": "{{count}} 筆結果",
+    "clearFilters": "清除篩選",
+    "filters": {
+      "signal": "訊號",
+      "any": "全部",
+      "rsiMin": "RSI 下限",
+      "rsiMax": "RSI 上限",
+      "rvolMin": "相對成交量下限",
+      "sector": "產業",
+      "breakout": "突破",
+      "aboveSma50": "高於 SMA50"
+    },
+    "columns": {
+      "symbol": "代號",
+      "signal": "訊號",
+      "score": "分數",
+      "price": "價格",
+      "rsi": "RSI",
+      "rvol": "相對量",
+      "pctFrom52wHigh": "距 52 週高點 %",
+      "pctChange1d": "日漲跌 %",
+      "sector": "產業"
     }
   }
 }
