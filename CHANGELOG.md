@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.0](https://github.com/ai-workflow-space/stock-market-toolkit/compare/v0.13.0...v0.14.0) (2026-07-03)
+
+
+### Features
+
+* add advanced signal analysis, nightly scanning, backtesting, and screener ([e69c010](https://github.com/ai-workflow-space/stock-market-toolkit/commit/e69c0104a99a2d3a7e597cc8d4dfd513c7a55641))
+* daily Top Signals feed with nightly market scan ([#252](https://github.com/ai-workflow-space/stock-market-toolkit/issues/252)) ([61b3c97](https://github.com/ai-workflow-space/stock-market-toolkit/commit/61b3c972539adf34d03cfa637b8d1a1fe4a583c0))
+* RVOL spike + 52-week breakout signals, signal/rvol alert metrics ([b8a5a1b](https://github.com/ai-workflow-space/stock-market-toolkit/commit/b8a5a1b17f111d41beacd35fe45bc82a88befb74))
+* RVOL spike + 52-week breakout signals, signal/rvol alert metrics ([#251](https://github.com/ai-workflow-space/stock-market-toolkit/issues/251)) ([b8a5a1b](https://github.com/ai-workflow-space/stock-market-toolkit/commit/b8a5a1b17f111d41beacd35fe45bc82a88befb74))
+* screener and sector heatmap over nightly scan results ([#254](https://github.com/ai-workflow-space/stock-market-toolkit/issues/254)) ([e69c010](https://github.com/ai-workflow-space/stock-market-toolkit/commit/e69c0104a99a2d3a7e597cc8d4dfd513c7a55641))
+* signal backtest with historical hit rate and average return ([#253](https://github.com/ai-workflow-space/stock-market-toolkit/issues/253)) ([b1dd152](https://github.com/ai-workflow-space/stock-market-toolkit/commit/b1dd15216462cddf4fbbc7623faa5d9068c1c226))
+
 ## [0.13.0](https://github.com/ai-workflow-space/stock-market-toolkit/compare/v0.12.0...v0.13.0) (2026-07-03)
 
 
