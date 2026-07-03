@@ -152,7 +152,8 @@ export default function SignalCard({
                 <p className="font-mono font-semibold tabular-nums">${fmt(signal.price)}</p>
                 {signal.pct_from_52w_high != null && (() => {
                   const val = signal.pct_from_52w_high;
-                  const signedVal = `${val >= 0 ? "+" : ""}${val.toFixed(1)}%`;
+                  // No "%" here — the i18n string supplies it
+                  const signedVal = `${val >= 0 ? "+" : ""}${val.toFixed(1)}`;
                   return (
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {t("common.signals.pctFrom52wHigh", { value: signedVal })}
