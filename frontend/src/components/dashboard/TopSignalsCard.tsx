@@ -159,7 +159,7 @@ export default function TopSignalsCard({ className }: TopSignalsCardProps) {
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
-          <p className="py-4 text-center text-sm text-muted-foreground">{t("signals.empty.title")}</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">{t("signals.scanEmpty.title")}</p>
         </CardContent>
       </Card>
     );
@@ -208,7 +208,7 @@ export default function TopSignalsCard({ className }: TopSignalsCardProps) {
           </TabsList>
           <TabsContent value="buys" className="mt-2">
             {data.buys.length === 0 ? (
-              <p className="py-2 text-center text-xs text-muted-foreground">{t("signals.empty.title")}</p>
+              <p className="py-2 text-center text-xs text-muted-foreground">{t("signals.scanEmpty.title")}</p>
             ) : (
               <div className="max-h-[200px] overflow-y-auto">
                 {data.buys.map((item) => (
@@ -219,7 +219,7 @@ export default function TopSignalsCard({ className }: TopSignalsCardProps) {
           </TabsContent>
           <TabsContent value="sells" className="mt-2">
             {data.sells.length === 0 ? (
-              <p className="py-2 text-center text-xs text-muted-foreground">{t("signals.empty.title")}</p>
+              <p className="py-2 text-center text-xs text-muted-foreground">{t("signals.scanEmpty.title")}</p>
             ) : (
               <div className="max-h-[200px] overflow-y-auto">
                 {data.sells.map((item) => (
