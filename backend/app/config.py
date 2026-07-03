@@ -34,6 +34,10 @@ class Settings:
         "dev-encryption-key-stocktoolkit-change-in-production-openssl-rand-hex-64",
     )
     FINMIND_TOKEN: str = _get_env("FINMIND_TOKEN", "")
+    # Comma-separated symbols for the nightly signal scan (mix US and .TW/.TWO
+    # freely, e.g. "AAPL,NVDA,2330.TW"). Empty = built-in default US list.
+    # User watchlist symbols are always scanned in addition to this list.
+    SCAN_UNIVERSE: str = _get_env("SCAN_UNIVERSE", "")
 
     # ── Provider chain configuration ──────────────────────────────────
     PROVIDER_CHAIN: str = _get_env("PROVIDER_CHAIN", "default")
