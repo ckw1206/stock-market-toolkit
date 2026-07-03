@@ -147,3 +147,165 @@ def test_get_batch_signals_thin_history_surfaces_specific_reason(client):
         assert err["symbol"] == "SPCX"
         assert "history" in err["error"].lower()
         assert err["error"] != "analysis failed"
+
+
+def test_get_analysis_includes_rvol_and_volume_spike(client):
+    """Analysis response includes indicators.rvol and volume_spike boolean."""
+    import pandas as pd
+    from datetime import datetime
+    from app.providers.chain import FallbackChain, TaggedValue
+
+    n = 60
+    # Very high volume to trigger volume_spike (rvol > 2.0)
+    df = pd.DataFrame({
+        "Open":   [150.0 + i * 0.1 for i in range(n)],
+        "High":   [152.0 + i * 0.1 for i in range(n)],
+        "Low":    [149.0 + i * 0.1 for i in range(n)],
+        "Close":  [151.0 + i * 0.1 for i in range(n)],
+        "Volume": [50_000_000 + i * 100_000 for i in range(n)],  # ~50M avg, spike
+    }, index=pd.date_range("2024-01-01", periods=n, freq="D"))
+
+    def side_effect(symbol, period, interval):
+        return TaggedValue(df, "yfinance", datetime.utcnow())
+
+    with patch("app.routes.analysis.market_provider", spec=FallbackChain) as mock_provider:
+        mock_provider.get_history = AsyncMock(side_effect=side_effect)
+        response = client.get("/api/analysis/AAPL?period=1mo")
+        assert response.status_code == 200
+        data = response.json()
+        # rvol should be in indicators
+        assert "rvol" in data["indicators"]
+        assert data["indicators"]["rvol"] is not None
+        # volume_spike should be a boolean
+        assert "volume_spike" in data
+        assert isinstance(data["volume_spike"], bool)
+
+
+def test_get_analysis_breakout_true_when_within_2pct_and_high_rvol(client):
+    """Breakout is true when close is within 2% of 52w high AND rvol > 1.5."""
+    import pandas as pd
+    from datetime import datetime
+    from app.providers.chain import FallbackChain, TaggedValue
+
+    n = 60
+    # close = 152 + 0.1*i, at i=59 close = 157.9 (within 2% of 160 since 0.98*160=156.8)
+    # For rvol > 1.5 at last bar: need last_vol > 1.5 * avg(last_20_vols)
+    # Using Volume = [100M]*50 + [320M]*10:
+    #   avg(last 20, indices 40-59) = (10*100M + 10*320M)/20 = 2100M/20 = 105M
+    #   last_vol = 320M
+    #   rvol = 320/105 ≈ 3.05 > 1.5 ✓
+    df = pd.DataFrame({
+        "Open":   [157.0 + i * 0.1 for i in range(n)],
+        "High":   [159.0 + i * 0.1 for i in range(n)],
+        "Low":    [156.0 + i * 0.1 for i in range(n)],
+        "Close":  [152.0 + i * 0.1 for i in range(n)],  # close at i=59 = 157.9
+        "Volume": [100_000_000 for _ in range(50)] + [320_000_000 for _ in range(10)],
+    }, index=pd.date_range("2024-01-01", periods=n, freq="D"))
+
+    n_1y = 252
+    high_52w_df = pd.DataFrame({
+        "Open":   [140.0 + i * 0.05 for i in range(n_1y)],
+        "High":   [160.0 for i in range(n_1y)],  # 52w high = 160
+        "Low":    [130.0 + i * 0.03 for i in range(n_1y)],
+        "Close":  [150.0 + i * 0.02 for i in range(n_1y)],
+        "Volume": [20_000_000 for i in range(n_1y)],
+    }, index=pd.date_range("2023-01-01", periods=n_1y, freq="D"))
+
+    def side_effect(symbol, period, interval):
+        if period == "1y":
+            return TaggedValue(high_52w_df, "yfinance", datetime.utcnow())
+        return TaggedValue(df, "yfinance", datetime.utcnow())
+
+    with patch("app.routes.analysis.market_provider", spec=FallbackChain) as mock_provider:
+        mock_provider.get_history = AsyncMock(side_effect=side_effect)
+        response = client.get("/api/analysis/AAPL?period=1mo")
+        assert response.status_code == 200
+        data = response.json()
+        # 52w metrics should be present
+        assert data["indicators"]["high_52w"] == 160.0
+        assert data["indicators"]["low_52w"] is not None
+        assert data["indicators"]["pct_from_52w_high"] is not None
+        # breakout should be true
+        assert "breakout" in data
+        assert data["breakout"] is True
+
+
+def test_get_analysis_breakout_false_when_1y_fetch_fails(client):
+    """When 1y history fetch fails, 52w fields are None and breakout is false (graceful degradation)."""
+    import pandas as pd
+    from datetime import datetime
+    from app.providers.chain import FallbackChain, TaggedValue
+
+    n = 60
+    df = pd.DataFrame({
+        "Open":   [150.0 + i * 0.1 for i in range(n)],
+        "High":   [152.0 + i * 0.1 for i in range(n)],
+        "Low":    [149.0 + i * 0.1 for i in range(n)],
+        "Close":  [151.0 + i * 0.1 for i in range(n)],
+        "Volume": [1_000_000 + i * 10_000 for i in range(n)],
+    }, index=pd.date_range("2024-01-01", periods=n, freq="D"))
+
+    def side_effect(symbol, period, interval):
+        if period == "1y":
+            raise RuntimeError("1y data unavailable")
+        return TaggedValue(df, "yfinance", datetime.utcnow())
+
+    with patch("app.routes.analysis.market_provider", spec=FallbackChain) as mock_provider:
+        mock_provider.get_history = AsyncMock(side_effect=side_effect)
+        response = client.get("/api/analysis/AAPL?period=1mo")
+        assert response.status_code == 200
+        data = response.json()
+        # 52w fields should be None due to graceful degradation
+        assert data["indicators"]["high_52w"] is None
+        assert data["indicators"]["low_52w"] is None
+        assert data["indicators"]["pct_from_52w_high"] is None
+        # breakout should be false
+        assert data["breakout"] is False
+
+
+def test_get_analysis_near_52w_high_no_volume_confirmation(client):
+    """When price is within 2% of 52w high but rvol <= 1.5 (no breakout),
+    append 'Near 52-week high (no volume confirmation)' reason with NO score change."""
+    import pandas as pd
+    from datetime import datetime
+    from app.providers.chain import FallbackChain, TaggedValue
+
+    n = 60
+    # close = 155 + 0.05*i, at i=59 close = 157.95 (>= 156.8 = 0.98*160 ✓)
+    # rvol = 1.0 (constant 10M volume, 20d avg = 10M), so breakout = False
+    df = pd.DataFrame({
+        "Open":   [155.5 + i * 0.05 for i in range(n)],
+        "High":   [157.5 + i * 0.05 for i in range(n)],
+        "Low":    [154.5 + i * 0.05 for i in range(n)],
+        "Close":  [155.0 + i * 0.05 for i in range(n)],  # close at i=59 = 157.95
+        "Volume": [10_000_000 for _ in range(n)],  # constant, rvol = 1.0
+    }, index=pd.date_range("2024-01-01", periods=n, freq="D"))
+
+    n_1y = 252
+    high_52w_df = pd.DataFrame({
+        "Open":   [140.0 + i * 0.05 for i in range(n_1y)],
+        "High":   [160.0 for i in range(n_1y)],  # 52w high = 160
+        "Low":    [130.0 + i * 0.03 for i in range(n_1y)],
+        "Close":  [150.0 + i * 0.02 for i in range(n_1y)],
+        "Volume": [20_000_000 for i in range(n_1y)],
+    }, index=pd.date_range("2023-01-01", periods=n_1y, freq="D"))
+
+    def side_effect(symbol, period, interval):
+        if period == "1y":
+            return TaggedValue(high_52w_df, "yfinance", datetime.utcnow())
+        return TaggedValue(df, "yfinance", datetime.utcnow())
+
+    with patch("app.routes.analysis.market_provider", spec=FallbackChain) as mock_provider:
+        mock_provider.get_history = AsyncMock(side_effect=side_effect)
+        response = client.get("/api/analysis/AAPL?period=1mo")
+        assert response.status_code == 200
+        data = response.json()
+        # breakout should be false (rvol=1.0, not > 1.5)
+        assert data["breakout"] is False
+        # 52w metrics should be present
+        assert data["indicators"]["high_52w"] == 160.0
+        # near-52w-high reason should be present (no score change, just reason)
+        reasons_lower = [r.lower() for r in data["reasons"]]
+        assert any("near 52-week high" in r for r in reasons_lower)
+        assert not any("breakout on volume" in r for r in reasons_lower)
+

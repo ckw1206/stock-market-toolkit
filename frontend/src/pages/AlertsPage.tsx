@@ -48,7 +48,7 @@ import type { TFunction } from "i18next";
 // Enum VALUES sent to backend are stable; only the visible labels are translated.
 const CONDITION_VALUES = ["above", "below", "pct_change_up", "pct_change_down"] as const;
 const PERIOD_VALUES = ["5m", "15m", "30m", "1h", "4h", "1d"] as const;
-const METRIC_VALUES = ["price", "rsi", "macd_hist", "signal", "pct_change"] as const;
+const METRIC_VALUES = ["price", "rsi", "macd_hist", "signal", "pct_change", "rvol"] as const;
 const OPERATOR_VALUES = ["gt", "lt", "crosses_above", "eq"] as const;
 
 function conditionLabel(t: TFunction, ct: string): string {
@@ -71,7 +71,7 @@ function operatorLabel(t: TFunction, o: string): string {
 
 // Local form type for conditions: value stored as a string so the field can be empty
 type ConditionFormItem = {
-  metric: "price" | "rsi" | "macd_hist" | "signal" | "pct_change";
+  metric: "price" | "rsi" | "macd_hist" | "signal" | "pct_change" | "rvol";
   operator: "gt" | "lt" | "crosses_above" | "eq";
   value: string;
 };
