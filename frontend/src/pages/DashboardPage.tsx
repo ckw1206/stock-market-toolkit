@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, startTransition, lazy, Suspense } from "r
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { LayoutGrid, List } from "lucide-react";
-import { getStock, getIndicators, getStockInfo, getFundamentals, getDividends, getNews } from "@/api/stockApi";
+import { getStock, getIndicators, getStockInfo, getFundamentals, getDividends, getNews, getTopSignals } from "@/api/stockApi";
+import type { TopSignalsData } from "@/api/stockApi";
 import type { StockData, Indicators, StockInfo, Fundamentals, DividendData, NewsData } from "@/types";
 import { TIMEFRAMES } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ export default function DashboardPage() {
   const [dividends, setDividends] = useState<DividendData | null>(null);
   const [news, setNews] = useState<NewsData | null>(null);
   const [newsLoading, setNewsLoading] = useState(false);
+  const [topSignals, setTopSignals] = useState<TopSignalsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [active, setActive] = useState<string[]>(["sma20", "rsi", "macd"]);
@@ -113,6 +115,12 @@ export default function DashboardPage() {
   const onPeriod = (p: string) => { if (p !== period) { setLoading(true); setPeriod(p); } };
   const retry = () => { setLoading(true); setReloadKey((k) => k + 1); };
 
+  useEffect(() => {
+    getTopSignals(10)
+      .then(setTopSignals)
+      .catch(() => setTopSignals(null));
+  }, []);
+
   const activeSet = useMemo(() => new Set(active), [active]);
   const ready = Boolean(stock && indicators && info);
 
@@ -145,10 +153,10 @@ export default function DashboardPage() {
       ) : ready && stock && indicators && info ? (
         editMode ? (
           <Suspense fallback={<DashboardSkeleton />}>
-            <EditableGrid stock={stock} indicators={indicators} info={info} fundamentals={fundamentals} dividends={dividends} news={news} newsLoading={newsLoading} active={activeSet} />
+            <EditableGrid stock={stock} indicators={indicators} info={info} fundamentals={fundamentals} dividends={dividends} news={news} newsLoading={newsLoading} active={activeSet} topSignals={topSignals} />
           </Suspense>
         ) : (
-          <DashboardGrid stock={stock} indicators={indicators} info={info} fundamentals={fundamentals} dividends={dividends} news={news} newsLoading={newsLoading} active={activeSet} />
+          <DashboardGrid stock={stock} indicators={indicators} info={info} fundamentals={fundamentals} dividends={dividends} news={news} newsLoading={newsLoading} active={activeSet} topSignals={topSignals} />
         )
       ) : (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center text-sm text-muted-foreground">

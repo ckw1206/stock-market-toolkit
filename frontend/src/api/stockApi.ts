@@ -78,3 +78,29 @@ export async function searchSymbols(q: string): Promise<SymbolSuggestion[]> {
   const data = res.data;
   return Array.isArray(data) ? data : (data.suggestions || []);
 }
+
+export interface TopSignalItem {
+  symbol: string;
+  signal: string;
+  confidence: number;
+  price: number;
+  rvol: number | null;
+  breakout: boolean;
+  volume_spike: boolean;
+  reasons: string[];
+  rank: number;
+}
+
+export interface TopSignalsData {
+  scanned_at: string | null;
+  buys: TopSignalItem[];
+  sells: TopSignalItem[];
+}
+
+export async function getTopSignals(limit: number = 10): Promise<TopSignalsData> {
+  const res = await axios.get(`${API}/api/signals/top`, {
+    params: { limit },
+    headers: authHeaders(),
+  });
+  return res.data;
+}

@@ -325,7 +325,14 @@
     "failedToLoad": "資料載入失敗",
     "couldntLoadSymbol": "無法載入此股票代號。",
     "noData": "沒有可顯示的資料。",
-    "retry": "重試"
+    "retry": "重試",
+    "topSignals": {
+      "title": "今日精選信號",
+      "lastScan": "最後掃描：",
+      "buys": "買入",
+      "sells": "賣出",
+      "hint": "每晚掃描追蹤標的與您的自選清單，依綜合信號分數（BIAS、MACD、KDJ、成交量、52 週突破）排序。信心度代表信號強度，並非保證報酬 — 投資前請自行研究。"
+    }
   },
   "login": {
     "welcome": "歡迎回來",
@@ -543,6 +550,10 @@
     "empty": {
       "title": "尚無追蹤的股票代號",
       "description": "在此新增股票代號以追蹤其信號"
+    },
+    "scanEmpty": {
+      "title": "尚無信號資料",
+      "description": "執行掃描以在此處查看精選信號"
     },
     "disclaimer": {
       "label": "免責聲明：",

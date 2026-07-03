@@ -325,7 +325,14 @@
     "failedToLoad": "Failed to load data",
     "couldntLoadSymbol": "Couldn't load this symbol.",
     "noData": "No data to display.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "topSignals": {
+      "title": "Today's Top Signals",
+      "lastScan": "Last scan:",
+      "buys": "BUYs",
+      "sells": "SELLs",
+      "hint": "Nightly scan of tracked symbols and your watchlist, ranked by composite signal score (BIAS, MACD, KDJ, volume, 52w breakout). Confidence reflects signal strength, not a guaranteed return — always do your own research."
+    }
   },
   "login": {
     "welcome": "Welcome back",
@@ -543,6 +550,10 @@
     "empty": {
       "title": "No tracked symbols",
       "description": "Add tickers to track their signals here"
+    },
+    "scanEmpty": {
+      "title": "No signal data yet",
+      "description": "Run a scan to see top signals here"
     },
     "disclaimer": {
       "label": "Disclaimer:",

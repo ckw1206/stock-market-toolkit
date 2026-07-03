@@ -10,6 +10,7 @@ from .alert import (
 )
 from .fundamentals import FinancialStatement, Dividend, SymbolScore, MonthlyRevenue
 from .admin import InviteCode, JobRun, SmtpSettings, AuditLog
+from .signals import SignalScan, ScanResult
 
 __all__ = [
     "Base",
@@ -28,4 +29,6 @@ __all__ = [
     "JobRun",
     "SmtpSettings",
     "AuditLog",
+    "SignalScan",
+    "ScanResult",
 ]
