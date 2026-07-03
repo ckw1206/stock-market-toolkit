@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { StockData, Indicators, StockInfo, Fundamentals, DividendData, NewsData } from "@/types";
+import type { TopSignalsData } from "@/api/stockApi";
 import ChartCard from "@/components/common/ChartCard";
 import PriceChart from "./PriceChart";
 import RsiChart from "./RsiChart";
@@ -10,6 +11,7 @@ import FundamentalsCard from "./FundamentalsCard";
 import DividendCard from "./DividendCard";
 import WatchlistButton from "@/components/common/WatchlistButton";
 import NewsCard from "./NewsCard";
+import TopSignalsCard from "./TopSignalsCard";
 
 export interface DashboardGridProps {
   stock: StockData;
@@ -20,9 +22,10 @@ export interface DashboardGridProps {
   news: NewsData | null;
   newsLoading: boolean;
   active: Set<string>;
+  topSignals?: TopSignalsData | null;
 }
 
-export default function DashboardGrid({ stock, indicators, info, fundamentals, dividends, news, newsLoading, active }: DashboardGridProps) {
+export default function DashboardGrid({ stock, indicators, info, fundamentals, dividends, news, newsLoading, active, topSignals }: DashboardGridProps) {
   const { t } = useTranslation();
   const dates = stock.timestamp.map((ts) =>
     new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
@@ -77,6 +80,12 @@ export default function DashboardGrid({ stock, indicators, info, fundamentals, d
       {news && (
         <div className="col-span-12 lg:col-span-4">
           <NewsCard news={news} loading={newsLoading} />
+        </div>
+      )}
+
+      {topSignals && (
+        <div className="col-span-12 lg:col-span-6">
+          <TopSignalsCard />
         </div>
       )}
     </div>

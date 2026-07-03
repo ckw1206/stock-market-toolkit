@@ -5,13 +5,39 @@ from typing import TypedDict
 
 import pandas_ta as ta
 
+from app.providers import market_provider
 from app.utils.numeric import _clean
+
+
+class SignalAnalysisError(Exception):
+    """Base class for signal analysis errors."""
+    pass
+
+
+class ProviderUnavailableError(SignalAnalysisError):
+    """Raised when the data provider is unavailable."""
+    pass
+
+
+class NoDataError(SignalAnalysisError):
+    """Raised when no data is available for the symbol."""
+    pass
+
+
+class ThinHistoryError(SignalAnalysisError):
+    """Raised when there is not enough price history."""
+    def __init__(self, symbol: str, available: int, needed: int):
+        self.symbol = symbol
+        self.available = available
+        self.needed = needed
+        super().__init__(f"Not enough price history for {symbol} to compute signals: only {available} trading day(s) available, need at least {needed}. The symbol may have been listed too recently — check back once it has more trading history.")
 
 
 class SignalResult(TypedDict):
     symbol: str
     period: str
     signal: str
+    score: float
     confidence: float
     reasons: list[str]
     price: float
@@ -224,6 +250,7 @@ def build_signal_result(
         "symbol": symbol.upper(),
         "period": period,
         "signal": signal,
+        "score": round(score, 2),
         "confidence": round(confidence, 2),
         "reasons": reasons,
         "price": round(latest_close, 2),
@@ -232,3 +259,95 @@ def build_signal_result(
         "volume_spike": volume_spike,
         "breakout": breakout,
     }
+
+
+async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None) -> SignalResult:
+    """Core signal computation shared by routes and cron scan.
+
+    Args:
+        symbol: Stock symbol
+        period: Time period (1d, 5d, 1mo, 3mo, etc.)
+        provider: Market data provider (defaults to module-level market_provider)
+
+    Raises:
+        ProviderUnavailableError: when the data provider is unavailable
+        NoDataError: when no data is returned for the symbol
+        ThinHistoryError: when there's not enough price history
+    """
+    if provider is None:
+        provider = market_provider
+    interval_map = {"1d": "5m", "5d": "15m"}
+    interval = interval_map.get(period, "1d")
+
+    try:
+        result = await provider.get_history(
+            symbol.upper(), period=period, interval=interval
+        )
+    except RuntimeError as exc:
+        raise ProviderUnavailableError(f"Data provider unavailable for {symbol}") from exc
+
+    df = result.value
+
+    if df.empty:
+        raise NoDataError(f"No data for {symbol}")
+
+    if len(df) < MIN_HISTORY_BARS:
+        raise ThinHistoryError(symbol, len(df), MIN_HISTORY_BARS)
+
+    close = df["Close"]
+    high = df["High"]
+    low = df["Low"]
+    volume = df["Volume"]
+    n = len(close)
+    latest_close = float(close.iloc[-1])
+
+    try:
+        macd_df = ta.macd(close, fast=12, slow=26, signal=9)
+    except Exception:
+        macd_df = None
+
+    indicators = compute_indicators(close, high, low, volume, n, macd_df)
+    rvol = indicators.get("rvol")
+    volume_spike = rvol is not None and rvol > 2.0
+
+    high_52w = None
+    low_52w = None
+    breakout = False
+
+    try:
+        result_1y = await provider.get_history(
+            symbol.upper(), period="1y", interval="1d"
+        )
+        df_1y = result_1y.value
+        if not df_1y.empty:
+            high_52w = float(df_1y["High"].max())
+            low_52w = float(df_1y["Low"].min())
+            breakout = is_breakout(latest_close, high_52w, rvol)
+    except Exception:
+        pass
+
+    score, reasons = score_signals(
+        bias=indicators.get("bias"),
+        macd_hist=indicators.get("macd_histogram"),
+        kdj_k=indicators.get("kdj_k"),
+        kdj_d=indicators.get("kdj_d"),
+        vol_ratio=indicators.get("volume_ratio"),
+        rvol=rvol,
+        breakout=breakout,
+        high_52w=high_52w,
+        close_price=latest_close,
+    )
+
+    return build_signal_result(
+        symbol=symbol,
+        period=period,
+        latest_close=latest_close,
+        timestamp=df.index[-1].isoformat() if len(df) > 0 else None,
+        indicators=indicators,
+        score=score,
+        reasons=reasons,
+        volume_spike=volume_spike,
+        breakout=breakout,
+        high_52w=high_52w,
+        low_52w=low_52w,
+    )

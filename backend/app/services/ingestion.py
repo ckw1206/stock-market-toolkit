@@ -22,6 +22,7 @@ from app.services.scoring import (
     piotroski_f_score,
     profitability_metrics,
 )
+from app.services.universe import get_tracked_universe
 
 log = logging.getLogger(__name__)
 
@@ -113,13 +114,9 @@ async def upsert_symbol_score(
     return row
 
 
-def _tracked_universe() -> list[str]:
-    return ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "JPM", "V", "WMT"]
-
-
 async def run_nightly_ingest(job_run_id: Optional[int] = None) -> int:
     settings = get_settings()
-    symbols = _tracked_universe()
+    symbols = get_tracked_universe()
     max_symbols = min(settings.INGEST_MAX_SYMBOLS, len(symbols))
     symbols = symbols[:max_symbols]
     delay = settings.INGEST_DELAY_SECONDS

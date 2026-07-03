@@ -325,7 +325,13 @@
     "failedToLoad": "資料載入失敗",
     "couldntLoadSymbol": "無法載入此股票代號。",
     "noData": "沒有可顯示的資料。",
-    "retry": "重試"
+    "retry": "重試",
+    "topSignals": {
+      "title": "今日精選信號",
+      "lastScan": "最後掃描：",
+      "buys": "買入",
+      "sells": "賣出"
+    }
   },
   "login": {
     "welcome": "歡迎回來",

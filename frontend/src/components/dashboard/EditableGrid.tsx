@@ -13,9 +13,10 @@ import HistoryTable from "./HistoryTable";
 import FundamentalsCard from "./FundamentalsCard";
 import DividendCard from "./DividendCard";
 import NewsCard from "./NewsCard";
+import TopSignalsCard from "./TopSignalsCard";
 import type { DashboardGridProps } from "./DashboardGrid";
 
-export default function EditableGrid({ stock, indicators, info, fundamentals, dividends, news, newsLoading, active }: DashboardGridProps) {
+export default function EditableGrid({ stock, indicators, info, fundamentals, dividends, news, newsLoading, active, topSignals }: DashboardGridProps) {
   const { t } = useTranslation();
   const { containerRef, width } = useContainerWidth();
   const dates = stock.timestamp.map((t) =>
@@ -30,8 +31,9 @@ export default function EditableGrid({ stock, indicators, info, fundamentals, di
     if (fundamentals) s.add("fundamentals");
     if (dividends) s.add("dividends");
     if (news) s.add("news");
+    if (topSignals) s.add("topsignals");
     return s;
-  }, [fundamentals, dividends, news]);
+  }, [fundamentals, dividends, news, topSignals]);
 
   const layout = useMemo(() => reconcileLayout(stored, active, extras), [active, extras, stored]);
 
@@ -88,6 +90,11 @@ export default function EditableGrid({ stock, indicators, info, fundamentals, di
         {news && (
           <div key="news" className="h-full overflow-auto">
             <NewsCard news={news} loading={newsLoading} />
+          </div>
+        )}
+        {topSignals && (
+          <div key="topsignals" className="h-full overflow-auto">
+            <TopSignalsCard />
           </div>
         )}
       </GridLayout>
