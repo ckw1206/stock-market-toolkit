@@ -10,7 +10,6 @@ from app.services.signals import (
     ProviderUnavailableError,
     NoDataError,
     ThinHistoryError,
-    MIN_HISTORY_BARS,
 )
 
 log = logging.getLogger(__name__)
