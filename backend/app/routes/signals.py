@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from app.models import User
 from app.auth import get_current_user
-from app.database import AsyncSessionLocal, get_db
+from app.database import AsyncSessionLocal
 from app.services.top_signals import get_top_signals
 
 router = APIRouter(prefix="/api/signals", tags=["signals"])
