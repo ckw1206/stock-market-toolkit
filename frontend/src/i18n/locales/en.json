@@ -325,7 +325,13 @@
     "failedToLoad": "Failed to load data",
     "couldntLoadSymbol": "Couldn't load this symbol.",
     "noData": "No data to display.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "topSignals": {
+      "title": "Today's Top Signals",
+      "lastScan": "Last scan:",
+      "buys": "BUYs",
+      "sells": "SELLs"
+    }
   },
   "login": {
     "welcome": "Welcome back",

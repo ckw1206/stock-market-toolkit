@@ -5,7 +5,7 @@ export const LAYOUT_VERSION = 1;
 
 /** Optional data-driven cards, in static-grid order. Rendered only when their
  * data is present, so they get a layout entry only when listed in `extras`. */
-export const OPTIONAL_CARDS = ["fundamentals", "dividends", "news"] as const;
+export const OPTIONAL_CARDS = ["fundamentals", "dividends", "news", "topsignals"] as const;
 
 /**
  * Default grid placement for the editable dashboard, mirroring the static grid

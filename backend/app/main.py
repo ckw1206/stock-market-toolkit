@@ -28,6 +28,7 @@ from app.routes import (
     admin,
     watchlist,
     cron,
+    signals,
 )
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.access_log import AccessLogMiddleware
@@ -147,6 +148,7 @@ app.include_router(analysis.router)
 app.include_router(watchlist.router)
 app.include_router(admin.router)
 app.include_router(cron.router)
+app.include_router(signals.router)
 
 
 @app.get("/health")
