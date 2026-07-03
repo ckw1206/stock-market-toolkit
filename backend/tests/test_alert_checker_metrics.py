@@ -1,6 +1,6 @@
 """Tests for alert checker signal & rvol metric evaluation."""
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 import pandas as pd
 
 
@@ -22,7 +22,7 @@ class TestAlertCheckerSignalRvolMetrics:
     @pytest.mark.asyncio
     async def test_get_indicators_includes_signal_and_rvol(self, mock_ohlcv_df):
         """_get_indicators returns signal (numeric) and rvol in the result dict."""
-        from app.services.alert_checker import _get_indicators, _get_ohlcv_df
+        from app.services.alert_checker import _get_indicators
 
         # Patch _get_ohlcv_df to return our mock df
         with patch("app.services.alert_checker._get_ohlcv_df", new_callable=AsyncMock) as mock_get_df:

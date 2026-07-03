@@ -2,7 +2,6 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
 
 from app.services.signals import score_series, score_signals, signal_from_score

@@ -259,7 +259,6 @@ def score_series(df: pd.DataFrame) -> pd.Series:
     high = df["High"]
     low = df["Low"]
     volume = df["Volume"]
-    n = len(df)
 
     sma20 = ta.sma(close, length=20)
     bias_vals = (close - sma20) / sma20 * 100

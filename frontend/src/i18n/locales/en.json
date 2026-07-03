@@ -331,7 +331,8 @@
       "title": "Today's Top Signals",
       "lastScan": "Last scan:",
       "buys": "BUYs",
-      "sells": "SELLs"
+      "sells": "SELLs",
+      "hint": "Nightly scan of tracked symbols and your watchlist, ranked by composite signal score (BIAS, MACD, KDJ, volume, 52w breakout). Confidence reflects signal strength, not a guaranteed return — always do your own research."
     },
     "heatmap": {
       "title": "Sector Heatmap",
@@ -555,6 +556,10 @@
     "empty": {
       "title": "No tracked symbols",
       "description": "Add tickers to track their signals here"
+    },
+    "scanEmpty": {
+      "title": "No signal data yet",
+      "description": "Run a scan to see top signals here"
     },
     "disclaimer": {
       "label": "Disclaimer:",

@@ -31,6 +31,10 @@
     --neutral: 215 20% 65%;
   }
 
+  :root {
+    color-scheme: light;
+  }
+
   [data-theme="light"] {
     --background: 0 0% 100%;
     --foreground: 224 71% 4%;
@@ -110,4 +114,8 @@
     -webkit-font-smoothing: antialiased;
     font-feature-settings: "cv11", "ss01";
   }
+}
+
+.dark {
+  color-scheme: dark;
 }

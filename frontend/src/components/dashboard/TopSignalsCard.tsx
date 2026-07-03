@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { TrendingUp, TrendingDown, Minus, RefreshCw } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, RefreshCw, Info } from "lucide-react";
 import { getTopSignals, type TopSignalsData, type TopSignalItem } from "@/api/stockApi";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface TopSignalsCardProps {
@@ -158,7 +159,7 @@ export default function TopSignalsCard({ className }: TopSignalsCardProps) {
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
-          <p className="py-4 text-center text-sm text-muted-foreground">{t("signals.empty.title")}</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">{t("signals.scanEmpty.title")}</p>
         </CardContent>
       </Card>
     );
@@ -169,7 +170,20 @@ export default function TopSignalsCard({ className }: TopSignalsCardProps) {
       <CardHeader className="px-4 pb-3 pt-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium">{t("dashboard.topSignals.title")}</div>
+            <div className="flex items-center gap-1.5">
+              <div className="text-sm font-medium">{t("dashboard.topSignals.title")}</div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info
+                    className="size-3.5 cursor-help text-muted-foreground"
+                    aria-label={t("dashboard.topSignals.hint")}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[280px] text-xs">
+                  {t("dashboard.topSignals.hint")}
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <div className="flex items-center gap-2">
               <p className="text-xs text-muted-foreground">
                 {data.scanned_at ? `${t("dashboard.topSignals.lastScan")} ` : ""}
@@ -194,7 +208,7 @@ export default function TopSignalsCard({ className }: TopSignalsCardProps) {
           </TabsList>
           <TabsContent value="buys" className="mt-2">
             {data.buys.length === 0 ? (
-              <p className="py-2 text-center text-xs text-muted-foreground">{t("signals.empty.title")}</p>
+              <p className="py-2 text-center text-xs text-muted-foreground">{t("signals.scanEmpty.title")}</p>
             ) : (
               <div className="max-h-[200px] overflow-y-auto">
                 {data.buys.map((item) => (
@@ -205,7 +219,7 @@ export default function TopSignalsCard({ className }: TopSignalsCardProps) {
           </TabsContent>
           <TabsContent value="sells" className="mt-2">
             {data.sells.length === 0 ? (
-              <p className="py-2 text-center text-xs text-muted-foreground">{t("signals.empty.title")}</p>
+              <p className="py-2 text-center text-xs text-muted-foreground">{t("signals.scanEmpty.title")}</p>
             ) : (
               <div className="max-h-[200px] overflow-y-auto">
                 {data.sells.map((item) => (
