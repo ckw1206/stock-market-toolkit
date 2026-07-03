@@ -554,6 +554,17 @@
       "label": "免責聲明：",
       "body": "這些信號由技術指標產生，不應視為投資建議。做出投資決策前，請務必自行研究。"
     },
+    "historicalPerformance": {
+      "label": "歷史表現",
+      "noData": "尚無歷史表現資料",
+      "signalCount": "{{count}} 個信號",
+      "hitRate": "{{rate}}% 命中率（{{horizon}}天）",
+      "avgReturn": "平均 {{return}}%",
+      "sideBuy": "買入",
+      "sideSell": "賣出",
+      "loading": "載入中…",
+      "disclaimer": "過往表現不保證未來結果。這不是投資建議。"
+    },
     "toast": {
       "loadFailed": "載入失敗：{{symbols}}",
       "batchLoadFailed": "載入信號失敗。請再試一次。",

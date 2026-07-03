@@ -135,4 +135,27 @@ export interface Signal {
   volume_spike?: boolean;
   breakout?: boolean;
   pct_from_52w_high?: number;
+  backtestStats?: BacktestStats;
+}
+
+export interface BacktestHorizonStats {
+  count: number;
+  hit_rate: number;
+  avg_return_pct: number;
+}
+
+export interface BacktestSideStats {
+  signal_days: number;
+  horizons: {
+    "5": BacktestHorizonStats;
+    "20": BacktestHorizonStats;
+  };
+}
+
+export interface BacktestStats {
+  symbol: string;
+  period: string;
+  bars: number;
+  buy: BacktestSideStats;
+  sell: BacktestSideStats;
 }

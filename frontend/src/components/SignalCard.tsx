@@ -167,6 +167,36 @@ export default function SignalCard({
             </div>
 
             <p className="mb-2 text-sm leading-relaxed text-muted-foreground">{signal.description}</p>
+
+            {signal.backtestStats && signal.direction !== "neutral" && (() => {
+              const side = signal.direction === "bullish"
+                ? signal.backtestStats.buy
+                : signal.backtestStats.sell;
+              if (!side || side.signal_days === 0) return null;
+              const h5 = side.horizons["5"];
+              const h20 = side.horizons["20"];
+              const fmtReturn = (v: number) => (v >= 0 ? `+${v}` : `${v}`);
+              return (
+                <div className="mt-2 rounded border border-primary/10 bg-primary/5 p-2 text-xs">
+                  <p className="mb-1 font-medium text-muted-foreground">
+                    {t("signals.historicalPerformance.label")}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {t("signals.historicalPerformance.signalCount", { count: side.signal_days })} ·{" "}
+                    {t("signals.historicalPerformance.hitRate", { rate: Math.round(h5.hit_rate * 100), horizon: 5 })} ·{" "}
+                    {t("signals.historicalPerformance.avgReturn", { return: fmtReturn(h5.avg_return_pct) })}
+                  </p>
+                  <p className="mt-0.5 text-muted-foreground">
+                    {t("signals.historicalPerformance.hitRate", { rate: Math.round(h20.hit_rate * 100), horizon: 20 })} ·{" "}
+                    {t("signals.historicalPerformance.avgReturn", { return: fmtReturn(h20.avg_return_pct) })}
+                  </p>
+                  <p className="mt-1 text-[10px] text-muted-foreground/70">
+                    {t("signals.historicalPerformance.disclaimer")}
+                  </p>
+                </div>
+              );
+            })()}
+
             <p className="text-xs text-muted-foreground">{formatTime(signal.timestamp)}</p>
           </>
         )}
