@@ -16,6 +16,7 @@ import {
   type NotificationSettings,
 } from "../api/alertsApi";
 import { getStockInfo } from "../api/stockApi";
+import { getMarketStatus } from "../lib/marketHours";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -40,7 +41,6 @@ import { Skeleton } from "../components/ui/skeleton";
 import { Bell, CheckCircle2, X, Plus, Trash2, Pencil } from "lucide-react";
 import SymbolSearch from "@/components/common/SymbolSearch";
 import { fmt } from "../lib/format";
-import { getMarketStatus } from "../lib/marketHours";
 import { toast } from "@/components/ui/sonner";
 
 import type { TFunction } from "i18next";
@@ -217,7 +217,7 @@ function CreateAlertDialog({
                       onChange={e => updateCondition(idx, "metric", e.target.value)}
                     >
                       {METRIC_VALUES.map(v => (
-                        <option key={v} value={v}>{t(`alerts.metrics.${v}`)}</option>
+                        <option className="bg-background text-foreground" key={v} value={v}>{t(`alerts.metrics.${v}`)}</option>
                       ))}
                     </select>
                   </div>
@@ -228,7 +228,7 @@ function CreateAlertDialog({
                       onChange={e => updateCondition(idx, "operator", e.target.value)}
                     >
                       {OPERATOR_VALUES.map(v => (
-                        <option key={v} value={v}>{t(`alerts.operators.${v}`)}</option>
+                        <option className="bg-background text-foreground" key={v} value={v}>{t(`alerts.operators.${v}`)}</option>
                       ))}
                     </select>
                   </div>
@@ -260,7 +260,7 @@ function CreateAlertDialog({
                 onChange={e => setPeriod(e.target.value)}
               >
                 {PERIOD_VALUES.map(v => (
-                  <option key={v} value={v}>{t(`alerts.periods.${v}`)}</option>
+                  <option className="bg-background text-foreground" key={v} value={v}>{t(`alerts.periods.${v}`)}</option>
                 ))}
               </select>
             </div>
@@ -429,7 +429,7 @@ function EditAlertDialog({
                       onChange={e => updateCondition(idx, "metric", e.target.value)}
                     >
                       {METRIC_VALUES.map(v => (
-                        <option key={v} value={v}>{t(`alerts.metrics.${v}`)}</option>
+                        <option className="bg-background text-foreground" key={v} value={v}>{t(`alerts.metrics.${v}`)}</option>
                       ))}
                     </select>
                   </div>
@@ -440,7 +440,7 @@ function EditAlertDialog({
                       onChange={e => updateCondition(idx, "operator", e.target.value)}
                     >
                       {OPERATOR_VALUES.map(v => (
-                        <option key={v} value={v}>{t(`alerts.operators.${v}`)}</option>
+                        <option className="bg-background text-foreground" key={v} value={v}>{t(`alerts.operators.${v}`)}</option>
                       ))}
                     </select>
                   </div>
@@ -472,7 +472,7 @@ function EditAlertDialog({
                 onChange={e => setPeriod(e.target.value)}
               >
                 {PERIOD_VALUES.map(v => (
-                  <option key={v} value={v}>{t(`alerts.periods.${v}`)}</option>
+                  <option className="bg-background text-foreground" key={v} value={v}>{t(`alerts.periods.${v}`)}</option>
                 ))}
               </select>
             </div>
