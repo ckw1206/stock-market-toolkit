@@ -92,6 +92,12 @@ export default function SignalCard({
                     {t("common.signals.rvolBadge", { value: signal.rvol.toFixed(1) })}
                   </Badge>
                 )}
+                {signal.confluence === "aligned" && (
+                  <Badge variant="default">{t("common.signals.confluenceAligned")}</Badge>
+                )}
+                {signal.confluence === "conflict" && (
+                  <Badge variant="destructive">{t("common.signals.confluenceConflict")}</Badge>
+                )}
               </>
             )}
           </div>

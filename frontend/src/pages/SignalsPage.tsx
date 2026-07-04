@@ -32,6 +32,7 @@ type AnalysisResponse = {
     high_52w?: number;
     low_52w?: number;
     pct_from_52w_high?: number;
+    confluence?: "aligned" | "conflict" | "neutral" | null;
   };
   price?: number;
   timestamp?: string;
@@ -67,6 +68,7 @@ function mapAnalysisToSignal(data: AnalysisResponse, symbolOverride?: string): S
     volume_spike: data.volume_spike,
     breakout: data.breakout,
     pct_from_52w_high: indicators?.pct_from_52w_high,
+    confluence: indicators?.confluence,
   } satisfies Signal;
 }
 

@@ -171,7 +171,9 @@
       "signalStrength": "Signal strength",
       "rvolBadge": "{{value}}x vol",
       "breakout": "Breakout",
-      "pctFrom52wHigh": "{{value}}% from 52w high"
+      "pctFrom52wHigh": "{{value}}% from 52w high",
+      "confluenceAligned": "Weekly ✓",
+      "confluenceConflict": "Weekly ⚠"
     },
     "fields": {
       "price": "Price",

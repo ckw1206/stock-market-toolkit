@@ -171,7 +171,9 @@
       "signalStrength": "訊號強度",
       "rvolBadge": "成交量 {{value}} 倍",
       "breakout": "突破",
-      "pctFrom52wHigh": "偏離 52 週高點 {{value}}%"
+      "pctFrom52wHigh": "偏離 52 週高點 {{value}}%",
+      "confluenceAligned": "週線 ✓",
+      "confluenceConflict": "週線 ⚠"
     },
     "fields": {
       "price": "價格",

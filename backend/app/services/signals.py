@@ -161,6 +161,45 @@ def compute_52w_metrics(close_price: float, high_52w: float | None, low_52w: flo
     }
 
 
+def weekly_frame(df: pd.DataFrame) -> pd.DataFrame:
+    """Resample a daily OHLCV frame to weekly (Friday-ending) bars."""
+    return df.resample("W-FRI").agg(
+        {"Open": "first", "High": "max", "Low": "min", "Close": "last", "Volume": "sum"}
+    ).dropna()
+
+
+def weekly_bias(wdf: pd.DataFrame) -> str | None:
+    """Classify the weekly trend as bullish/bearish/neutral from 10w/40w SMAs.
+
+    Falls back to the 10-week SMA alone when there isn't a full 40 weeks of
+    history yet. Returns None when there's not even enough for the 10-week leg.
+    """
+    if len(wdf) < 10:
+        return None
+
+    close = wdf["Close"]
+    last = float(close.iloc[-1])
+    sma10 = close.rolling(10).mean().iloc[-1]
+    if math.isnan(sma10):
+        return None
+    sma10 = float(sma10)
+
+    sma40 = close.rolling(40).mean().iloc[-1] if len(wdf) >= 40 else None
+    if sma40 is not None and not math.isnan(sma40):
+        sma40 = float(sma40)
+        if last > sma10 > sma40:
+            return "bullish"
+        if last < sma10 < sma40:
+            return "bearish"
+        return "neutral"
+
+    if last > sma10:
+        return "bullish"
+    if last < sma10:
+        return "bearish"
+    return "neutral"
+
+
 def is_breakout(close_price: float, high_52w: float | None, rvol: float | None) -> bool:
     """Determine if current price is in breakout condition.
 
@@ -315,13 +354,30 @@ def build_signal_result(
     breakout: bool,
     high_52w: float | None,
     low_52w: float | None,
+    weekly_bias_val: str | None = None,
 ) -> SignalResult:
     """Build the final signal result dict."""
     signal = signal_from_score(score)
     confidence = min(abs(score), 1.0)
 
+    confluence = None
+    if weekly_bias_val is not None and signal in ("BUY", "SELL"):
+        daily_dir = "bullish" if signal == "BUY" else "bearish"
+        if weekly_bias_val == daily_dir:
+            confidence = min(1.0, confidence + 0.15)
+            confluence = "aligned"
+            reasons.append(f"Weekly trend confirms daily {signal}")
+        elif weekly_bias_val == "neutral":
+            confluence = "neutral"
+        else:
+            confidence = max(0.0, confidence - 0.2)
+            confluence = "conflict"
+            reasons.append(f"Caution: weekly trend is {weekly_bias_val}, daily is {signal}")
+
     result_indicators = dict(indicators)
     result_indicators.update(compute_52w_metrics(latest_close, high_52w, low_52w))
+    result_indicators["weekly_bias"] = weekly_bias_val
+    result_indicators["confluence"] = confluence
 
     return {
         "symbol": symbol.upper(),
@@ -390,6 +446,7 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
     high_52w = None
     low_52w = None
     breakout = False
+    weekly_bias_val = None
 
     try:
         result_1y = await provider.get_history(
@@ -400,6 +457,7 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
             high_52w = float(df_1y["High"].max())
             low_52w = float(df_1y["Low"].min())
             breakout = is_breakout(latest_close, high_52w, rvol)
+            weekly_bias_val = weekly_bias(weekly_frame(df_1y))
     except Exception:
         pass
 
@@ -427,4 +485,5 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
         breakout=breakout,
         high_52w=high_52w,
         low_52w=low_52w,
+        weekly_bias_val=weekly_bias_val,
     )
