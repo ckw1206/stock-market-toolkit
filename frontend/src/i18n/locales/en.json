@@ -175,7 +175,8 @@
       "confluenceAligned": "Weekly ✓",
       "confluenceConflict": "Weekly ⚠",
       "divergenceBullish": "Bullish divergence",
-      "divergenceBearish": "Bearish divergence"
+      "divergenceBearish": "Bearish divergence",
+      "earningsSoon": "Earnings in {{count}}d"
     },
     "fields": {
       "price": "Price",

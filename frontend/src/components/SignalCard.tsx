@@ -104,6 +104,11 @@ export default function SignalCard({
                 {signal.divergence === "bearish" && (
                   <Badge variant="destructive">{t("common.signals.divergenceBearish")}</Badge>
                 )}
+                {signal.daysToEarnings != null && signal.daysToEarnings <= 5 && (
+                  <Badge variant="destructive">
+                    {t("common.signals.earningsSoon", { count: signal.daysToEarnings })}
+                  </Badge>
+                )}
               </>
             )}
           </div>

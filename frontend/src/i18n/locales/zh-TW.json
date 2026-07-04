@@ -175,7 +175,8 @@
       "confluenceAligned": "週線 ✓",
       "confluenceConflict": "週線 ⚠",
       "divergenceBullish": "看漲背離",
-      "divergenceBearish": "看跌背離"
+      "divergenceBearish": "看跌背離",
+      "earningsSoon": "{{count}} 天後公布財報"
     },
     "fields": {
       "price": "價格",

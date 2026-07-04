@@ -8,6 +8,7 @@ import pandas as pd
 import pandas_ta as ta
 
 from app.providers import market_provider
+from app.services.earnings import get_next_earnings_date, days_until
 from app.utils.numeric import _clean
 
 
@@ -423,6 +424,7 @@ def build_signal_result(
     low_52w: float | None,
     weekly_bias_val: str | None = None,
     divergence: str | None = None,
+    days_to_earnings: int | None = None,
 ) -> SignalResult:
     """Build the final signal result dict."""
     signal = signal_from_score(score)
@@ -442,11 +444,16 @@ def build_signal_result(
             confluence = "conflict"
             reasons.append(f"Caution: weekly trend is {weekly_bias_val}, daily is {signal}")
 
+    if days_to_earnings is not None and 0 <= days_to_earnings <= 5:
+        confidence = max(0.0, confidence - 0.15)
+        reasons.append(f"Earnings in {days_to_earnings} day(s) — elevated event risk")
+
     result_indicators = dict(indicators)
     result_indicators.update(compute_52w_metrics(latest_close, high_52w, low_52w))
     result_indicators["weekly_bias"] = weekly_bias_val
     result_indicators["confluence"] = confluence
     result_indicators["divergence"] = divergence
+    result_indicators["days_to_earnings"] = days_to_earnings
 
     return {
         "symbol": symbol.upper(),
@@ -536,6 +543,12 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
     except Exception:
         pass
 
+    try:
+        next_earnings = await get_next_earnings_date(symbol)
+        days_to_earnings = days_until(next_earnings)
+    except Exception:
+        days_to_earnings = None
+
     score, reasons = score_signals(
         bias=indicators.get("bias"),
         macd_hist=indicators.get("macd_histogram"),
@@ -563,4 +576,5 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
         low_52w=low_52w,
         weekly_bias_val=weekly_bias_val,
         divergence=divergence,
+        days_to_earnings=days_to_earnings,
     )

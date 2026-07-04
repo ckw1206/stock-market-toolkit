@@ -137,6 +137,7 @@ export interface Signal {
   pct_from_52w_high?: number;
   confluence?: "aligned" | "conflict" | "neutral" | null;
   divergence?: "bullish" | "bearish" | null;
+  daysToEarnings?: number | null;
   backtestStats?: BacktestStats;
 }
 
