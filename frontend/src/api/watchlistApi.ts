@@ -15,6 +15,8 @@ export interface WatchlistItem {
   id: number;
   user_id: string;
   symbol: string;
+  note: string | null;
+  tags: string[];
   created_at: string;
 }
 
@@ -38,4 +40,14 @@ export async function removeFromWatchlist(symbol: string): Promise<void> {
   await axios.delete(`${API}/api/watchlist/${symbol}`, {
     headers: authHeaders(),
   });
+}
+
+export async function updateWatchlistItem(
+  symbol: string,
+  data: { note?: string; tags?: string[] }
+): Promise<WatchlistItem> {
+  const res = await axios.patch(`${API}/api/watchlist/${symbol}`, data, {
+    headers: authHeaders(),
+  });
+  return res.data;
 }

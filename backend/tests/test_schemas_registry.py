@@ -23,7 +23,7 @@ EXPECTED_SCHEMAS = [
     "AuditLogResponse", "AuditLogListResponse", "SmtpSettingsResponse",
     "SmtpSettingsUpdate", "SmtpTestRequest", "SmtpTestResponse",
     # watchlist
-    "WatchlistCreate", "WatchlistResponse",
+    "WatchlistCreate", "WatchlistUpdate", "WatchlistResponse",
     # ingestion
     "JobRunResponse", "IngestStatusResponse",
     # paper trading
@@ -38,4 +38,4 @@ def test_all_schemas_importable():
 
 def test_package_exports_match_expected():
     assert set(schemas.__all__) == set(EXPECTED_SCHEMAS)
-    assert len(EXPECTED_SCHEMAS) == 50
+    assert len(EXPECTED_SCHEMAS) == 51

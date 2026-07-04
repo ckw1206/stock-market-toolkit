@@ -3,6 +3,7 @@ import {
   getWatchlist,
   addToWatchlist,
   removeFromWatchlist,
+  updateWatchlistItem,
   type WatchlistItem,
 } from "../api/watchlistApi";
 import { useAuth } from "./useAuth";
@@ -62,5 +63,12 @@ export function useWatchlist() {
   const isWatched = (symbol: string): boolean =>
     items.some((i) => i.symbol === symbol.toUpperCase());
 
-  return { items, symbols, loading, error, refresh, add, remove, isWatched };
+  const update = async (symbol: string, data: { note?: string; tags?: string[] }) => {
+    const upper = symbol.toUpperCase();
+    const updated = await updateWatchlistItem(upper, data);
+    setItems((prev) => prev.map((i) => (i.symbol === upper ? updated : i)));
+    return updated;
+  };
+
+  return { items, symbols, loading, error, refresh, add, remove, update, isWatched };
 }

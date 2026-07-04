@@ -58,6 +58,7 @@ from app.schemas.admin import (
 )
 from app.schemas.watchlist import (
     WatchlistCreate,
+    WatchlistUpdate,
     WatchlistResponse,
 )
 from app.schemas.ingestion import (
@@ -88,7 +89,7 @@ __all__ = [
     "AuditLogResponse", "AuditLogListResponse", "SmtpSettingsResponse",
     "SmtpSettingsUpdate", "SmtpTestRequest", "SmtpTestResponse",
     # watchlist
-    "WatchlistCreate", "WatchlistResponse",
+    "WatchlistCreate", "WatchlistUpdate", "WatchlistResponse",
     # ingestion
     "JobRunResponse", "IngestStatusResponse",
     # paper trading
