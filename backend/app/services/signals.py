@@ -200,6 +200,65 @@ def weekly_bias(wdf: pd.DataFrame) -> str | None:
     return "neutral"
 
 
+DIVERGENCE_LOOKBACK = 60
+DIVERGENCE_PIVOT_ORDER = 5
+
+
+def _local_pivots(values: pd.Series, order: int, kind: str) -> list[int]:
+    """Positional indices of local minima/maxima using a symmetric `order`-bar window.
+
+    A bar at position i is a pivot when it is the (weak) min/max among the
+    `order` bars on each side of it. Avoids a scipy dependency for a single
+    O(n * order) scan.
+    """
+    arr = values.to_numpy()
+    n = len(arr)
+    pivots = []
+    for i in range(order, n - order):
+        window = arr[i - order : i + order + 1]
+        if kind == "min" and arr[i] <= window.min():
+            pivots.append(i)
+        elif kind == "max" and arr[i] >= window.max():
+            pivots.append(i)
+    return pivots
+
+
+def detect_divergence(
+    close: pd.Series,
+    rsi: pd.Series,
+    lookback: int = DIVERGENCE_LOOKBACK,
+    order: int = DIVERGENCE_PIVOT_ORDER,
+) -> str | None:
+    """Detect classic RSI divergence over the most recent `lookback` bars.
+
+    Bullish: price makes a lower low while RSI makes a higher low (early
+    reversal-up evidence). Bearish: price makes a higher high while RSI makes
+    a lower high. Returns None when there isn't enough clean history to find
+    two comparable pivots.
+    """
+    if len(close) < lookback or len(rsi) < lookback:
+        return None
+
+    c = close.tail(lookback).reset_index(drop=True)
+    r = rsi.tail(lookback).reset_index(drop=True)
+    if r.isna().any():
+        return None
+
+    lows = _local_pivots(c, order=order, kind="min")
+    if len(lows) >= 2:
+        a, b = lows[-2], lows[-1]
+        if c.iloc[b] < c.iloc[a] and r.iloc[b] > r.iloc[a]:
+            return "bullish"
+
+    highs = _local_pivots(c, order=order, kind="max")
+    if len(highs) >= 2:
+        a, b = highs[-2], highs[-1]
+        if c.iloc[b] > c.iloc[a] and r.iloc[b] < r.iloc[a]:
+            return "bearish"
+
+    return None
+
+
 def is_breakout(close_price: float, high_52w: float | None, rvol: float | None) -> bool:
     """Determine if current price is in breakout condition.
 
@@ -220,6 +279,7 @@ def score_signals(
     breakout: bool,
     high_52w: float | None,
     close_price: float | None = None,
+    divergence: str | None = None,
 ) -> tuple[float, list[str]]:
     """Compute signal score and reasons from indicator values.
 
@@ -275,6 +335,13 @@ def score_signals(
         and close_price >= 0.98 * high_52w
     ):
         reasons.append("Near 52-week high (no volume confirmation)")
+
+    if divergence == "bullish":
+        score += 0.25
+        reasons.append("Bullish RSI divergence: price made a lower low, RSI a higher low")
+    elif divergence == "bearish":
+        score -= 0.25
+        reasons.append("Bearish RSI divergence: price made a higher high, RSI a lower high")
 
     return score, reasons
 
@@ -355,6 +422,7 @@ def build_signal_result(
     high_52w: float | None,
     low_52w: float | None,
     weekly_bias_val: str | None = None,
+    divergence: str | None = None,
 ) -> SignalResult:
     """Build the final signal result dict."""
     signal = signal_from_score(score)
@@ -378,6 +446,7 @@ def build_signal_result(
     result_indicators.update(compute_52w_metrics(latest_close, high_52w, low_52w))
     result_indicators["weekly_bias"] = weekly_bias_val
     result_indicators["confluence"] = confluence
+    result_indicators["divergence"] = divergence
 
     return {
         "symbol": symbol.upper(),
@@ -443,6 +512,12 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
     rvol = indicators.get("rvol")
     volume_spike = rvol is not None and rvol > 2.0
 
+    try:
+        rsi_series = ta.rsi(close, length=14)
+        divergence = detect_divergence(close, rsi_series)
+    except Exception:
+        divergence = None
+
     high_52w = None
     low_52w = None
     breakout = False
@@ -471,6 +546,7 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
         breakout=breakout,
         high_52w=high_52w,
         close_price=latest_close,
+        divergence=divergence,
     )
 
     return build_signal_result(
@@ -486,4 +562,5 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
         high_52w=high_52w,
         low_52w=low_52w,
         weekly_bias_val=weekly_bias_val,
+        divergence=divergence,
     )

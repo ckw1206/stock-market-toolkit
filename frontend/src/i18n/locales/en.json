@@ -173,7 +173,9 @@
       "breakout": "Breakout",
       "pctFrom52wHigh": "{{value}}% from 52w high",
       "confluenceAligned": "Weekly ✓",
-      "confluenceConflict": "Weekly ⚠"
+      "confluenceConflict": "Weekly ⚠",
+      "divergenceBullish": "Bullish divergence",
+      "divergenceBearish": "Bearish divergence"
     },
     "fields": {
       "price": "Price",

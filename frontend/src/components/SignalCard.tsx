@@ -98,6 +98,12 @@ export default function SignalCard({
                 {signal.confluence === "conflict" && (
                   <Badge variant="destructive">{t("common.signals.confluenceConflict")}</Badge>
                 )}
+                {signal.divergence === "bullish" && (
+                  <Badge variant="default">{t("common.signals.divergenceBullish")}</Badge>
+                )}
+                {signal.divergence === "bearish" && (
+                  <Badge variant="destructive">{t("common.signals.divergenceBearish")}</Badge>
+                )}
               </>
             )}
           </div>
