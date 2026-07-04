@@ -136,6 +136,7 @@ export interface Signal {
   breakout?: boolean;
   pct_from_52w_high?: number;
   confluence?: "aligned" | "conflict" | "neutral" | null;
+  divergence?: "bullish" | "bearish" | null;
   backtestStats?: BacktestStats;
 }
 

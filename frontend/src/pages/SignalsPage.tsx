@@ -33,6 +33,7 @@ type AnalysisResponse = {
     low_52w?: number;
     pct_from_52w_high?: number;
     confluence?: "aligned" | "conflict" | "neutral" | null;
+    divergence?: "bullish" | "bearish" | null;
   };
   price?: number;
   timestamp?: string;
@@ -69,6 +70,7 @@ function mapAnalysisToSignal(data: AnalysisResponse, symbolOverride?: string): S
     breakout: data.breakout,
     pct_from_52w_high: indicators?.pct_from_52w_high,
     confluence: indicators?.confluence,
+    divergence: indicators?.divergence,
   } satisfies Signal;
 }
 
