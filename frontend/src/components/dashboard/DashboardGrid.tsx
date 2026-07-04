@@ -13,6 +13,7 @@ import WatchlistButton from "@/components/common/WatchlistButton";
 import NewsCard from "./NewsCard";
 import TopSignalsCard from "./TopSignalsCard";
 import HeatmapCard from "./HeatmapCard";
+import PositionSizeCard from "./PositionSizeCard";
 
 export interface DashboardGridProps {
   stock: StockData;
@@ -91,6 +92,10 @@ export default function DashboardGrid({ stock, indicators, info, fundamentals, d
       )}
       <div className="col-span-12 lg:col-span-6">
         <HeatmapCard />
+      </div>
+
+      <div className="col-span-12 lg:col-span-4">
+        <PositionSizeCard symbol={stock.symbol} />
       </div>
     </div>
   );
