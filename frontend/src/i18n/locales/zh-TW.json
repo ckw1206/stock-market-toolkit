@@ -338,6 +338,21 @@
       "title": "產業熱力圖",
       "empty": "尚無掃描資料 — 首次夜間訊號掃描後即會顯示熱力圖",
       "otherSector": "其他"
+    },
+    "positionSize": {
+      "title": "部位大小計算",
+      "account": "帳戶資金 ($)",
+      "riskPct": "風險 %",
+      "atrMult": "ATR 倍數",
+      "calculate": "計算",
+      "entry": "進場價",
+      "stop": "停損 (依 ATR)",
+      "shares": "股數",
+      "riskAmount": "風險金額",
+      "takeProfit2r": "停利 (2R)",
+      "takeProfit3r": "停利 (3R)",
+      "invalidInputs": "請輸入有效的帳戶資金、風險 %（0-100）與 ATR 倍數。",
+      "zeroShares": "以此停損距離計算，風險預算不足以買進 1 股。"
     }
   },
   "login": {

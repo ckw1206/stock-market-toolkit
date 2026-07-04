@@ -338,6 +338,21 @@
       "title": "Sector Heatmap",
       "empty": "No scan yet — the heatmap appears after the first nightly signal scan",
       "otherSector": "Other"
+    },
+    "positionSize": {
+      "title": "Position Size",
+      "account": "Account ($)",
+      "riskPct": "Risk %",
+      "atrMult": "ATR ×",
+      "calculate": "Calculate",
+      "entry": "Entry",
+      "stop": "Stop (ATR-based)",
+      "shares": "Shares",
+      "riskAmount": "Risk amount",
+      "takeProfit2r": "Take profit (2R)",
+      "takeProfit3r": "Take profit (3R)",
+      "invalidInputs": "Enter a valid account size, risk % (0-100), and ATR multiplier.",
+      "zeroShares": "Risk budget too small for one share at this stop distance."
     }
   },
   "login": {

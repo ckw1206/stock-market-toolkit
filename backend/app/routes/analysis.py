@@ -17,6 +17,7 @@ from app.services.backtest import (
     NoDataError as BacktestNoDataError,
     ThinHistoryError as BacktestThinHistoryError,
 )
+from app.services.position_size import get_position_size, InvalidPositionSizeInputError
 from app.services.cache import cached
 
 log = logging.getLogger(__name__)
@@ -106,3 +107,26 @@ async def get_analysis(
 ):
     """Get comprehensive technical analysis for a symbol."""
     return await _compute_analysis(symbol, period)
+
+
+@router.get("/analysis/{symbol}/position-size")
+async def get_position_size_route(
+    symbol: str,
+    account: float = Query(..., gt=0, description="Account size in currency units"),
+    risk_pct: float = Query(1.0, gt=0, le=100, description="Percent of account to risk on this trade"),
+    atr_mult: float = Query(2.0, gt=0, description="Stop distance as a multiple of ATR(14)"),
+    current_user: User = Depends(get_current_user),
+):
+    """ATR-based position size, stop-loss, and take-profit levels for a long entry."""
+    try:
+        return await get_position_size(
+            symbol, account=account, risk_pct=risk_pct, atr_mult=atr_mult, provider=market_provider
+        )
+    except ProviderUnavailableError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except NoDataError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ThinHistoryError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except InvalidPositionSizeInputError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))

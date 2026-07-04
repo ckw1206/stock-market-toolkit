@@ -181,3 +181,30 @@ export async function getHeatmap(): Promise<HeatmapData> {
   });
   return res.data;
 }
+
+export interface PositionSizePlan {
+  symbol: string;
+  account: number;
+  risk_pct: number;
+  atr_mult: number;
+  entry: number;
+  atr: number | null;
+  stop: number | null;
+  shares: number;
+  risk_amount: number;
+  take_profit_2r: number | null;
+  take_profit_3r: number | null;
+}
+
+export async function getPositionSize(
+  symbol: string,
+  account: number,
+  riskPct: number,
+  atrMult: number = 2.0
+): Promise<PositionSizePlan> {
+  const res = await axios.get(`${API}/api/analysis/${symbol}/position-size`, {
+    params: { account, risk_pct: riskPct, atr_mult: atrMult },
+    headers: authHeaders(),
+  });
+  return res.data;
+}
