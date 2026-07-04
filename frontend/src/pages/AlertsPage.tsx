@@ -39,7 +39,8 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import { Skeleton } from "../components/ui/skeleton";
-import { Bell, CheckCircle2, X, Plus, Trash2, Pencil, Clock } from "lucide-react";
+import { Bell, CheckCircle2, X, Plus, Trash2, Pencil, Clock, Download } from "lucide-react";
+import { exportCsv } from "@/lib/csv";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,6 +84,16 @@ const TIMEZONE_OPTIONS: readonly string[] = [
   ...(typeof Intl.supportedValuesOf === "function"
     ? Intl.supportedValuesOf("timeZone")
     : FALLBACK_TIMEZONES),
+];
+
+const TRIGGERED_ALERT_CSV_COLUMNS: { key: keyof TriggeredAlert; label: string }[] = [
+  { key: "symbol", label: "Symbol" },
+  { key: "condition_type", label: "Condition" },
+  { key: "trigger_price", label: "Trigger Price" },
+  { key: "threshold_value", label: "Threshold" },
+  { key: "triggered_at", label: "Triggered At" },
+  { key: "notified", label: "Notified" },
+  { key: "read", label: "Read" },
 ];
 
 function conditionLabel(t: TFunction, ct: string): string {
@@ -1104,6 +1115,21 @@ export default function AlertsPage() {
               </Card>
             ) : (
               <div className="flex flex-col gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-fit gap-1 self-end text-xs"
+                  onClick={() =>
+                    exportCsv(
+                      `triggered-alerts-${new Date().toISOString().slice(0, 10)}.csv`,
+                      triggered,
+                      TRIGGERED_ALERT_CSV_COLUMNS
+                    )
+                  }
+                >
+                  <Download className="size-3.5" />
+                  {t("alerts.exportCsv")}
+                </Button>
                 {triggered.map(alert => (
                   <Card
                     key={alert.id}
