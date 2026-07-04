@@ -32,6 +32,7 @@ export interface Alert {
   combinator?: "all" | "any";
   conditions: AlertCondition[];
   cooldown_until: string | null;
+  snoozed_until: string | null;
   created_at: string;
 }
 
@@ -59,6 +60,8 @@ export interface NotificationSettings {
   discord_enabled: boolean;
   default_period: string;
   timezone: string;
+  quiet_start: string | null;
+  quiet_end: string | null;
   updated_at: string | null;
   // Per-user SMTP fields
   smtp_host?: string | null;
@@ -124,6 +127,15 @@ export async function deleteAlert(alertId: number): Promise<void> {
   await axios.delete(`${API}/api/alerts/${alertId}`, {
     headers: authHeaders(),
   });
+}
+
+export async function snoozeAlert(alertId: number, minutes: number): Promise<Alert> {
+  const res = await axios.post(
+    `${API}/api/alerts/${alertId}/snooze`,
+    { minutes },
+    { headers: authHeaders() }
+  );
+  return res.data;
 }
 
 export async function getTriggeredAlerts(unreadOnly = false): Promise<TriggeredAlert[]> {

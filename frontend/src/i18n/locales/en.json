@@ -59,6 +59,14 @@
     "combinatorAll": "ALL",
     "combinatorAny": "ANY",
     "triggeredAt": "Triggered at ${{price}} (threshold: ${{threshold}})",
+    "snoozedUntil": "Snoozed until {{time}}",
+    "snoozedBadge": "Snoozed",
+    "snooze": {
+      "oneHour": "Snooze 1 hour",
+      "fourHours": "Snooze 4 hours",
+      "oneDay": "Snooze 1 day",
+      "clear": "Clear snooze"
+    },
     "tabs": {
       "myAlerts": "My Alerts ({{count}})",
       "triggered": "Triggered",
@@ -122,14 +130,27 @@
       "webhookHint": "Get your webhook URL from Discord channel settings → Integrations → Webhooks",
       "save": "Save settings",
       "saving": "Saving…",
-      "saved": "Saved"
+      "saved": "Saved",
+      "quietHours": {
+        "title": "Quiet Hours",
+        "description": "No Discord/email notifications during this window — triggered alerts are still recorded and delivered in a catch-up once quiet hours end.",
+        "start": "Start",
+        "end": "End",
+        "timezone": "Timezone",
+        "clear": "Clear quiet hours"
+      }
     },
     "aria": {
       "enableAlert": "Enable {{symbol}} alert",
       "disableAlert": "Disable {{symbol}} alert",
       "editAlert": "Edit {{symbol}} alert",
       "deleteAlert": "Delete {{symbol}} alert",
+      "snoozeAlert": "Snooze {{symbol}} alert",
       "markRead": "Mark {{symbol}} alert as read"
+    },
+    "toast": {
+      "snoozed": "Alert snoozed",
+      "unsnoozed": "Snooze cleared"
     },
     "empty": {
       "noAlerts": "No alerts yet",
@@ -141,6 +162,7 @@
       "atLeastOneCondition": "Add at least one condition",
       "createFailed": "Failed to create alert",
       "saveSettingsFailed": "Failed to save settings",
+      "quietHoursIncomplete": "Set both a start and end time for quiet hours, or clear both",
       "loadFailed": "Failed to load alerts"
     },
     "marketStatus": {

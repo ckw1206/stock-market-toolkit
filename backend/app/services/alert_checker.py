@@ -21,12 +21,29 @@ from app.services.cache import cached, cache_key
 from app.services.mailer import send_email
 from app.services.notification.discord import _send_discord_notification
 from app.services.notification.email import render_alert_email
+from app.services.quiet_hours import in_quiet_hours
 from app.utils.numeric import _clean
 from app.services.signals import signal_to_numeric
 
 log = logging.getLogger(__name__)
 
 COOLDOWN_MINUTES = 60
+
+
+def _is_future(value: datetime | None, now: datetime) -> bool:
+    """Whether a DB-read timestamp is still in the future relative to `now`.
+
+    SQLite (the project's own default local-dev DATABASE_URL) doesn't
+    preserve tzinfo across a write/read round-trip for DateTime(timezone=True)
+    columns, so a value read back can be naive even though it was always
+    written as UTC-aware. Comparing that directly against an aware `now`
+    raises TypeError; treat a naive value as UTC instead of crashing.
+    """
+    if value is None:
+        return False
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value > now
 
 # yfinance period mapping for short intervals
 PERIOD_MAP = {
@@ -209,6 +226,149 @@ def _check_multi_condition(alert: Alert, indicators: dict) -> bool:
         return any(results)
 
 
+async def _send_notifications(
+    settings: NotificationSettings,
+    alert: Alert,
+    symbol: str,
+    condition_type: str,
+    price: float,
+    threshold: float,
+    triggered_at: datetime,
+) -> tuple[list[NotificationDelivery], bool]:
+    """Dispatch Discord/email for one triggered alert. Returns (deliveries, notified).
+
+    Shared by the live per-symbol check and the quiet-hours catch-up so both
+    paths record delivery attempts identically.
+    """
+    delivery_records: list[NotificationDelivery] = []
+    notified = False
+
+    if settings.discord_enabled and settings.discord_webhook_url:
+        success, http_status, error = await _send_discord_notification(
+            settings.discord_webhook_url,
+            symbol,
+            condition_type,
+            price,
+            threshold,
+            triggered_at,
+        )
+        delivery_records.append(
+            NotificationDelivery(
+                triggered_alert_id=None,  # filled after flush
+                user_id=alert.user_id,
+                channel="discord",
+                status="success" if success else "failed",
+                http_status=http_status,
+                error=error,
+            )
+        )
+        if success:
+            notified = True
+
+    if settings.email_enabled and settings.email_address:
+        if not settings.smtp_host:
+            delivery_records.append(
+                NotificationDelivery(
+                    triggered_alert_id=None,
+                    user_id=alert.user_id,
+                    channel="email",
+                    status="failed",
+                    error="Email enabled but no SMTP configured",
+                )
+            )
+        else:
+            email_subject, email_body = render_alert_email(
+                settings, symbol, alert, price, triggered_at
+            )
+            email_success = await send_email(
+                settings,
+                settings.email_address,
+                email_subject,
+                html_body=email_body,
+            )
+            delivery_records.append(
+                NotificationDelivery(
+                    triggered_alert_id=None,
+                    user_id=alert.user_id,
+                    channel="email",
+                    status="success" if email_success else "failed",
+                    error=None if email_success else "Email send failed",
+                )
+            )
+            if email_success:
+                notified = True
+
+    return delivery_records, notified
+
+
+async def _dispatch_quiet_hours_catchup(db, now: datetime) -> int:
+    """Catch up on notifications held back during a user's quiet hours.
+
+    For every user whose quiet hours are configured and are NOT active right
+    now, find their un-notified TriggeredAlert rows that fired *during* a
+    quiet window (checked against each record's own triggered_at, not just
+    "unnotified" — a delivery that failed outside quiet hours for an
+    unrelated reason must not be swept into this catch-up) and re-attempt
+    delivery once per alert.
+
+    Returns the number of triggered alerts caught up.
+    """
+    settings_result = await db.execute(
+        select(NotificationSettings).where(
+            NotificationSettings.quiet_start.isnot(None),
+            NotificationSettings.quiet_end.isnot(None),
+        )
+    )
+    all_settings = settings_result.scalars().all()
+
+    caught_up = 0
+    for settings in all_settings:
+        if in_quiet_hours(settings, now):
+            continue  # still quiet for this user — nothing to catch up yet
+
+        pending_result = await db.execute(
+            select(TriggeredAlert).where(
+                TriggeredAlert.user_id == settings.user_id,
+                TriggeredAlert.notified.is_(False),
+            )
+        )
+        pending = pending_result.scalars().all()
+        held = [t for t in pending if in_quiet_hours(settings, t.triggered_at)]
+        if not held:
+            continue
+
+        for triggered_record in held:
+            alert = None
+            if triggered_record.alert_id is not None:
+                alert = await db.get(Alert, triggered_record.alert_id)
+            if alert is None:
+                # Alert was deleted since — nothing left to notify from.
+                continue
+
+            delivery_records, notified = await _send_notifications(
+                settings,
+                alert,
+                triggered_record.symbol,
+                triggered_record.condition_type,
+                triggered_record.trigger_price,
+                triggered_record.threshold_value,
+                triggered_record.triggered_at,
+            )
+            if notified:
+                triggered_record.notified = True
+            await db.flush()
+            for dr in delivery_records:
+                dr.triggered_alert_id = triggered_record.id
+                db.add(dr)
+            caught_up += 1
+
+        await db.commit()
+
+    if caught_up:
+        log.info("Quiet-hours catch-up delivered %d held alert(s)", caught_up)
+    return caught_up
+
+
 async def check_alerts():
     """
     Main function to check all enabled alerts and trigger notifications.
@@ -232,6 +392,7 @@ async def check_alerts():
 
         if not rows:
             log.info("No enabled alerts to check")
+            await _dispatch_quiet_hours_catchup(db, datetime.now(timezone.utc))
             return
 
         log.info(f"Checking {len(rows)} enabled alerts")
@@ -286,7 +447,11 @@ async def check_alerts():
             for alert, settings in alert_settings_list:
                 try:
                     # Check cooldown
-                    if alert.cooldown_until and alert.cooldown_until > now:
+                    if _is_future(alert.cooldown_until, now):
+                        continue
+
+                    # Check snooze
+                    if _is_future(alert.snoozed_until, now):
                         continue
 
                     # Check if alert should trigger
@@ -327,74 +492,22 @@ async def check_alerts():
                         # Set cooldown
                         alert.cooldown_until = now + timedelta(minutes=COOLDOWN_MINUTES)
 
-                        # Send notifications if settings exist and are enabled
-                        delivery_records = []
-                        if settings:
-                            if (
-                                settings.discord_enabled
-                                and settings.discord_webhook_url
-                            ):
-                                (
-                                    success,
-                                    http_status,
-                                    error,
-                                ) = await _send_discord_notification(
-                                    settings.discord_webhook_url,
-                                    symbol,
-                                    trigger_condition_type,
-                                    current_price,
-                                    trigger_threshold,
-                                    now,
-                                )
-                                delivery_records.append(
-                                    NotificationDelivery(
-                                        triggered_alert_id=None,  # filled after flush
-                                        user_id=alert.user_id,
-                                        channel="discord",
-                                        status="success" if success else "failed",
-                                        http_status=http_status,
-                                        error=error,
-                                    )
-                                )
-                                if success:
-                                    triggered_record.notified = True
-                            # Email notification
-                            if (
-                                settings.email_enabled
-                                and settings.email_address
-                            ):
-                                if not settings.smtp_host:
-                                    # User has email enabled but no SMTP configured — record failure
-                                    delivery_records.append(
-                                        NotificationDelivery(
-                                            triggered_alert_id=None,
-                                            user_id=alert.user_id,
-                                            channel="email",
-                                            status="failed",
-                                            error="Email enabled but no SMTP configured",
-                                        )
-                                    )
-                                else:
-                                    email_subject, email_body = render_alert_email(
-                                        settings, symbol, alert, current_price, now
-                                    )
-                                    email_success = await send_email(
-                                        settings,  # per-user SMTP config from NotificationSettings
-                                        settings.email_address,
-                                        email_subject,
-                                        html_body=email_body,
-                                    )
-                                    delivery_records.append(
-                                        NotificationDelivery(
-                                            triggered_alert_id=None,
-                                            user_id=alert.user_id,
-                                            channel="email",
-                                            status="success" if email_success else "failed",
-                                            error=None if email_success else "Email send failed",
-                                        )
-                                    )
-                                    if email_success:
-                                        triggered_record.notified = True
+                        # Send notifications if settings exist, are enabled,
+                        # and the user isn't in their configured quiet hours —
+                        # quiet-hours holds are caught up after the main loop.
+                        delivery_records: list[NotificationDelivery] = []
+                        if settings and not in_quiet_hours(settings, now):
+                            delivery_records, notified = await _send_notifications(
+                                settings,
+                                alert,
+                                symbol,
+                                trigger_condition_type,
+                                current_price,
+                                trigger_threshold,
+                                now,
+                            )
+                            if notified:
+                                triggered_record.notified = True
 
                         # Flush to get triggered_record.id, then link deliveries
                         await db.flush()
@@ -410,6 +523,8 @@ async def check_alerts():
                 except Exception as e:
                     log.error(f"Error processing alert {alert.id}: {e}")
                     await db.rollback()
+
+        await _dispatch_quiet_hours_catchup(db, now)
 
         log.info("Alert check completed")
 

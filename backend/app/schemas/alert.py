@@ -63,10 +63,16 @@ class AlertResponse(BaseModel):
     combinator: Optional[str] = "all"
     conditions: list[AlertConditionResponse] = []
     cooldown_until: Optional[datetime] = None
+    snoozed_until: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+
+class AlertSnoozeRequest(BaseModel):
+    # Minutes to snooze for; 0 clears an existing snooze.
+    minutes: int = Field(..., ge=0, le=43200)  # cap at 30 days
 
 
 class TriggeredAlertResponse(BaseModel):
@@ -94,6 +100,8 @@ class NotificationSettingsResponse(BaseModel):
     discord_enabled: bool
     default_period: str
     timezone: str
+    quiet_start: Optional[str] = None
+    quiet_end: Optional[str] = None
     updated_at: Optional[datetime] = None
     email_subject: Optional[str] = None
     email_body: Optional[str] = None
@@ -131,6 +139,8 @@ class NotificationSettingsUpdate(BaseModel):
     discord_enabled: bool = True
     default_period: str = Field(default="1h", pattern="^(5m|15m|30m|1h|4h|1d)$")
     timezone: str = "UTC"
+    quiet_start: Optional[str] = Field(default=None, pattern="^([01]\\d|2[0-3]):[0-5]\\d$")
+    quiet_end: Optional[str] = Field(default=None, pattern="^([01]\\d|2[0-3]):[0-5]\\d$")
     email_subject: Optional[str] = Field(default=None, max_length=255)
     email_body: Optional[str] = None
     # Per-user SMTP fields

@@ -59,6 +59,14 @@
     "combinatorAll": "全部",
     "combinatorAny": "任一",
     "triggeredAt": "於 ${{price}} 觸發（門檻值：${{threshold}}）",
+    "snoozedUntil": "已延後至 {{time}}",
+    "snoozedBadge": "已延後",
+    "snooze": {
+      "oneHour": "延後 1 小時",
+      "fourHours": "延後 4 小時",
+      "oneDay": "延後 1 天",
+      "clear": "清除延後"
+    },
     "tabs": {
       "myAlerts": "我的警報（{{count}}）",
       "triggered": "已觸發",
@@ -122,14 +130,27 @@
       "webhookHint": "請至 Discord 頻道設定 → 整合 → Webhooks 取得您的 webhook 網址",
       "save": "儲存設定",
       "saving": "儲存中……",
-      "saved": "已儲存"
+      "saved": "已儲存",
+      "quietHours": {
+        "title": "安靜時段",
+        "description": "此時段內不會發送 Discord/電子郵件通知 — 已觸發的警報仍會被記錄，並在安靜時段結束後補送通知。",
+        "start": "開始時間",
+        "end": "結束時間",
+        "timezone": "時區",
+        "clear": "清除安靜時段"
+      }
     },
     "aria": {
       "enableAlert": "啟用 {{symbol}} 警報",
       "disableAlert": "停用 {{symbol}} 警報",
       "editAlert": "編輯 {{symbol}} 警報",
       "deleteAlert": "刪除 {{symbol}} 警報",
+      "snoozeAlert": "延後 {{symbol}} 警報",
       "markRead": "將 {{symbol}} 警報標記為已讀"
+    },
+    "toast": {
+      "snoozed": "警報已延後",
+      "unsnoozed": "已清除延後"
     },
     "empty": {
       "noAlerts": "尚無警報",
@@ -141,6 +162,7 @@
       "atLeastOneCondition": "請至少新增一個條件",
       "createFailed": "建立警報失敗",
       "saveSettingsFailed": "儲存設定失敗",
+      "quietHoursIncomplete": "請同時設定安靜時段的開始與結束時間，或將兩者都清除",
       "loadFailed": "載入警報失敗"
     },
     "marketStatus": {

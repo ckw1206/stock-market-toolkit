@@ -19,6 +19,7 @@ class Alert(Base):
     enabled = Column(Boolean, default=True)
     combinator = Column(String, default="all")  # all (AND) or any (OR)
     cooldown_until = Column(DateTime(timezone=True), nullable=True)
+    snoozed_until = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="alerts")
@@ -59,6 +60,11 @@ class NotificationSettings(Base):
     discord_enabled = Column(Boolean, default=True)
     default_period = Column(String, default="1h")
     timezone = Column(String, default="UTC")
+    # Quiet hours: "HH:MM" strings, interpreted in `timezone` above. A window
+    # where quiet_start > quiet_end wraps past midnight (e.g. 23:00-07:00).
+    # Either unset (None) means quiet hours are disabled.
+    quiet_start = Column(String(5), nullable=True)
+    quiet_end = Column(String(5), nullable=True)
     # Per-user SMTP configuration
     smtp_host = Column(String(255), nullable=True)
     smtp_port = Column(Integer, nullable=True, default=587)

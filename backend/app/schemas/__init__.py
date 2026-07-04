@@ -35,6 +35,7 @@ from app.schemas.alert import (
     AlertCreate,
     AlertUpdate,
     AlertResponse,
+    AlertSnoozeRequest,
     TriggeredAlertResponse,
     NotificationSettingsResponse,
     NotificationSettingsUpdate,
@@ -79,7 +80,7 @@ __all__ = [
     "NewsArticle", "NewsResponse",
     # alert
     "AlertConditionCreate", "AlertConditionResponse", "AlertCreate", "AlertUpdate",
-    "AlertResponse", "TriggeredAlertResponse", "NotificationSettingsResponse",
+    "AlertResponse", "AlertSnoozeRequest", "TriggeredAlertResponse", "NotificationSettingsResponse",
     "NotificationSettingsUpdate", "NotificationDeliveryResponse", "DiscordTestRequest",
     # admin
     "InviteCodeCreate", "InviteCodeResponse", "InviteCodeListResponse",
