@@ -24,14 +24,15 @@ def _now():
 
 
 async def compute_signal_for_symbol(symbol: str, period: str = "3mo") -> Optional[dict]:
-    """Compute signal for a symbol, returning None on any failure (log + skip)."""
+    """Compute signal for a symbol, returning None on expected data-availability
+    failures (no/thin history, provider outage). Unexpected exceptions propagate
+    to the caller so ``run_signal_scan`` can count them as scan errors instead of
+    silently dropping the symbol.
+    """
     try:
         return await compute_analysis_impl(symbol, period)
     except (ProviderUnavailableError, NoDataError, ThinHistoryError) as exc:
         log.warning("Signal scan skipped for %s: %s", symbol, exc)
-        return None
-    except Exception as exc:
-        log.error("Unexpected error computing signal for %s: %s", symbol, exc)
         return None
 
 

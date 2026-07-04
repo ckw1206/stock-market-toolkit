@@ -234,6 +234,61 @@ async def test_compute_signal_for_symbol_returns_score_key():
 
 
 @pytest.mark.asyncio
+async def test_compute_signal_for_symbol_propagates_unexpected_errors():
+    """Regression test: compute_signal_for_symbol must only swallow the known
+    data-availability errors (provider unavailable / no data / thin history).
+
+    It previously caught bare Exception and always returned None, which made
+    run_signal_scan's error counter permanently stuck at 0 — an unexpected bug
+    (e.g. a KeyError from a provider schema change) would silently vanish
+    instead of being counted and surfaced via /cron/scan-signals/status.
+    """
+    from app.services.top_signals import compute_signal_for_symbol
+
+    with patch(
+        "app.services.top_signals.compute_analysis_impl",
+        AsyncMock(side_effect=KeyError("Close")),
+    ):
+        with pytest.raises(KeyError):
+            await compute_signal_for_symbol("AAPL", period="3mo")
+
+
+@pytest.mark.asyncio
+async def test_run_signal_scan_counts_unexpected_errors_from_real_function():
+    """run_signal_scan's error counter must increment when the real (unmocked)
+    compute_signal_for_symbol lets an unexpected exception propagate.
+    """
+    from app.services.top_signals import run_signal_scan
+
+    async def mock_compute_analysis(symbol, period):
+        if symbol == "BROKEN":
+            raise KeyError("Close")
+        return _mock_signal_result(symbol, "BUY", 0.5)
+
+    with (
+        patch("app.services.top_signals.AsyncSessionLocal") as mock_session,
+        patch("app.services.top_signals.get_scan_universe", AsyncMock(return_value=["AAPL", "BROKEN"])),
+        patch("app.services.top_signals.compute_analysis_impl", mock_compute_analysis),
+        patch("app.services.top_signals.get_settings") as mock_settings,
+    ):
+        mock_db = MagicMock()
+        mock_db.execute = AsyncMock()
+        mock_db.execute.return_value = MagicMock()
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.refresh = AsyncMock()
+        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db.__aexit__ = AsyncMock(return_value=None)
+        mock_session.return_value = mock_db
+        mock_settings.return_value.INGEST_DELAY_SECONDS = 0
+
+        result = await run_signal_scan()
+
+    assert result["symbols_processed"] == 1
+    assert result["errors"] == 1
+
+
+@pytest.mark.asyncio
 async def test_cron_scan_signals_marks_failed_on_exception():
     """When run_signal_scan raises, the JobRun should be marked as failed."""
     from app.routes.cron import cron_scan_signals
