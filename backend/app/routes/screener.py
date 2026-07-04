@@ -1,7 +1,7 @@
 """Screener and sector heatmap over the latest signal scan."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.auth import get_current_user
 from app.database import AsyncSessionLocal
@@ -20,6 +20,23 @@ SORT_COLUMNS = {
 }
 
 
+GAP_AND_GO_MIN_GAP_PCT = 3.0
+GAP_AND_GO_MIN_RVOL = 2.0
+
+
+def _is_gap_and_go(pct_change_1d: float | None, rvol: float | None) -> bool:
+    """A same-direction gap of at least 3% on at least 2x relative volume.
+
+    ``pct_change_1d`` (bar-over-bar close change from the nightly daily scan)
+    is used as the gap proxy: the nightly scan captures one EOD bar per
+    symbol, so an intraday open-vs-prior-close gap isn't tracked separately
+    from the full day's move at this batch cadence.
+    """
+    if pct_change_1d is None or rvol is None:
+        return False
+    return abs(pct_change_1d) >= GAP_AND_GO_MIN_GAP_PCT and rvol >= GAP_AND_GO_MIN_RVOL
+
+
 def _result_to_dict(r: ScanResult) -> dict:
     return {
         "symbol": r.symbol,
@@ -36,6 +53,7 @@ def _result_to_dict(r: ScanResult) -> dict:
         "volume_ratio": r.volume_ratio,
         "pct_from_52w_high": r.pct_from_52w_high,
         "pct_change_1d": r.pct_change_1d,
+        "gap_and_go": _is_gap_and_go(r.pct_change_1d, r.rvol),
         "sector": r.sector,
         "rank": r.rank,
     }
@@ -53,6 +71,9 @@ async def screen(
     pct_from_52w_high_min: float | None = Query(None),
     above_sma50: bool | None = Query(None),
     sector: str | None = Query(None),
+    gap_min: float | None = Query(None, description="Min day's % change (gap proxy), e.g. 3 for gap-ups"),
+    gap_max: float | None = Query(None, description="Max day's % change (gap proxy), e.g. -3 for gap-downs"),
+    gap_and_go: bool | None = Query(None, description="Only |gap| >= 3% AND rvol >= 2x"),
     sort: str = Query("score"),
     order: str = Query("desc", pattern="^(asc|desc)$"),
     limit: int = Query(50, ge=1, le=200),
@@ -92,6 +113,15 @@ async def screen(
             stmt = stmt.where(cond if above_sma50 else ~cond)
         if sector is not None:
             stmt = stmt.where(ScanResult.sector == sector)
+        if gap_min is not None:
+            stmt = stmt.where(ScanResult.pct_change_1d >= gap_min)
+        if gap_max is not None:
+            stmt = stmt.where(ScanResult.pct_change_1d <= gap_max)
+        if gap_and_go:
+            stmt = stmt.where(
+                func.abs(ScanResult.pct_change_1d) >= GAP_AND_GO_MIN_GAP_PCT,
+                ScanResult.rvol >= GAP_AND_GO_MIN_RVOL,
+            )
 
         col = SORT_COLUMNS[sort]
         stmt = stmt.order_by(col.desc() if order == "desc" else col.asc()).limit(limit)

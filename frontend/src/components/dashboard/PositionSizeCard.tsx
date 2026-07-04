@@ -152,6 +152,7 @@ export default function PositionSizeCard({ symbol, className }: PositionSizeCard
           <dl
             className={`mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm ${loading ? "opacity-60" : ""}`}
           >
+
             <dt className="text-muted-foreground">{t("dashboard.positionSize.entry")}</dt>
             <dd className="text-right font-mono tabular-nums">{plan.entry.toFixed(2)}</dd>
 
