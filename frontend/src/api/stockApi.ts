@@ -120,6 +120,7 @@ export interface ScreenerItem {
   volume_ratio: number | null;
   pct_from_52w_high: number | null;
   pct_change_1d: number | null;
+  gap_and_go: boolean;
   sector: string | null;
   rank: number | null;
 }
@@ -141,6 +142,9 @@ export interface ScreenerFilters {
   pct_from_52w_high_min?: number;
   above_sma50?: boolean;
   sector?: string;
+  gap_min?: number;
+  gap_max?: number;
+  gap_and_go?: boolean;
   sort?: string;
   order?: "asc" | "desc";
   limit?: number;

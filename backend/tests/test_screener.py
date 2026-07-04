@@ -162,6 +162,40 @@ async def test_screener_sort_order_and_limit(client):
 
 
 @pytest.mark.asyncio
+async def test_screener_gap_min_filters_by_pct_change_1d(client):
+    resp = await client.get("/api/screener", params={"gap_min": 1.0})
+    data = resp.json()
+    # AAPL=1.2, NEWCO=5.0 clear the bar; MSFT=0.4, XOM=-2.1, JPM=0.0 don't.
+    assert {r["symbol"] for r in data["results"]} == {"AAPL", "NEWCO"}
+
+
+@pytest.mark.asyncio
+async def test_screener_gap_max_filters_gap_downs(client):
+    resp = await client.get("/api/screener", params={"gap_max": -1.0})
+    data = resp.json()
+    assert {r["symbol"] for r in data["results"]} == {"XOM"}
+
+
+@pytest.mark.asyncio
+async def test_screener_gap_and_go_requires_both_gap_and_rvol(client):
+    resp = await client.get("/api/screener", params={"gap_and_go": True})
+    data = resp.json()
+    # Only NEWCO clears |gap|>=3% AND rvol>=2x (pct_1d=5.0, rvol=3.0).
+    # AAPL has rvol=2.5 but gap=1.2 (< 3%); XOM has gap=-2.1 (< 3% abs).
+    assert {r["symbol"] for r in data["results"]} == {"NEWCO"}
+
+
+@pytest.mark.asyncio
+async def test_screener_gap_and_go_flag_present_per_row(client):
+    resp = await client.get("/api/screener", params={"sort": "pct_change_1d", "order": "desc"})
+    data = resp.json()
+    by_symbol = {r["symbol"]: r["gap_and_go"] for r in data["results"]}
+    assert by_symbol["NEWCO"] is True
+    assert by_symbol["AAPL"] is False
+    assert by_symbol["XOM"] is False
+
+
+@pytest.mark.asyncio
 async def test_screener_invalid_sort_is_422(client):
     resp = await client.get("/api/screener", params={"sort": "market_cap"})
     assert resp.status_code == 422

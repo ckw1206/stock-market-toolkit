@@ -621,7 +621,10 @@
       "rvolMin": "相對成交量下限",
       "sector": "產業",
       "breakout": "突破",
-      "aboveSma50": "高於 SMA50"
+      "aboveSma50": "高於 SMA50",
+      "gapMin": "跳空 % 下限",
+      "gapMax": "跳空 % 上限",
+      "gapAndGo": "跳空續強"
     },
     "columns": {
       "symbol": "代號",
@@ -633,6 +636,7 @@
       "pctFrom52wHigh": "距 52 週高點 %",
       "pctChange1d": "日漲跌 %",
       "sector": "產業"
-    }
+    },
+    "gapAndGoBadge": "跳空續強"
   }
 }

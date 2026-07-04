@@ -43,6 +43,9 @@ type Filters = {
   breakout: boolean;
   aboveSma50: boolean;
   sector: string;
+  gapMin: string;
+  gapMax: string;
+  gapAndGo: boolean;
 };
 
 const DEFAULT_FILTERS: Filters = {
@@ -53,6 +56,9 @@ const DEFAULT_FILTERS: Filters = {
   breakout: false,
   aboveSma50: false,
   sector: ALL,
+  gapMin: "",
+  gapMax: "",
+  gapAndGo: false,
 };
 
 function toQuery(f: Filters, sort: string, order: "asc" | "desc"): ScreenerFilters {
@@ -64,6 +70,9 @@ function toQuery(f: Filters, sort: string, order: "asc" | "desc"): ScreenerFilte
     breakout: f.breakout ? true : undefined,
     above_sma50: f.aboveSma50 ? true : undefined,
     sector: f.sector === ALL ? undefined : f.sector,
+    gap_min: f.gapMin === "" ? undefined : Number(f.gapMin),
+    gap_max: f.gapMax === "" ? undefined : Number(f.gapMax),
+    gap_and_go: f.gapAndGo ? true : undefined,
     sort,
     order,
     limit: 100,
@@ -229,6 +238,36 @@ export default function ScreenerPage() {
                 {t("screener.filters.aboveSma50")}
               </Label>
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{t("screener.filters.gapMin")}</Label>
+              <Input
+                className="h-8 text-xs"
+                type="number"
+                step={0.5}
+                value={filters.gapMin}
+                onChange={(e) => set("gapMin", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{t("screener.filters.gapMax")}</Label>
+              <Input
+                className="h-8 text-xs"
+                type="number"
+                step={0.5}
+                value={filters.gapMax}
+                onChange={(e) => set("gapMax", e.target.value)}
+              />
+            </div>
+            <div className="flex items-end gap-2 pb-1">
+              <Switch
+                id="gapAndGo"
+                checked={filters.gapAndGo}
+                onCheckedChange={(v) => set("gapAndGo", v)}
+              />
+              <Label htmlFor="gapAndGo" className="text-xs">
+                {t("screener.filters.gapAndGo")}
+              </Label>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-4">
@@ -283,6 +322,11 @@ export default function ScreenerPage() {
                         {r.breakout && (
                           <Badge variant="default" className="ml-1.5 text-[10px]">
                             {t("common.signals.breakout")}
+                          </Badge>
+                        )}
+                        {r.gap_and_go && (
+                          <Badge variant="destructive" className="ml-1.5 text-[10px]">
+                            {t("screener.gapAndGoBadge")}
                           </Badge>
                         )}
                       </td>

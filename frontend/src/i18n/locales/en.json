@@ -621,7 +621,10 @@
       "rvolMin": "RVOL min",
       "sector": "Sector",
       "breakout": "Breakout",
-      "aboveSma50": "Above SMA50"
+      "aboveSma50": "Above SMA50",
+      "gapMin": "Gap % min",
+      "gapMax": "Gap % max",
+      "gapAndGo": "Gap-and-go"
     },
     "columns": {
       "symbol": "Symbol",
@@ -633,6 +636,7 @@
       "pctFrom52wHigh": "% off 52w high",
       "pctChange1d": "1d %",
       "sector": "Sector"
-    }
+    },
+    "gapAndGoBadge": "Gap+Go"
   }
 }
