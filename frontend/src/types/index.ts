@@ -135,6 +135,7 @@ export interface Signal {
   volume_spike?: boolean;
   breakout?: boolean;
   pct_from_52w_high?: number;
+  confluence?: "aligned" | "conflict" | "neutral" | null;
   backtestStats?: BacktestStats;
 }
 
