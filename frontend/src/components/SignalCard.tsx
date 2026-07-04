@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus, X, LineChart, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, X, LineChart, BarChart3, Wallet } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Signal, SignalDirection, SignalType } from "@/types";
 import { fmt } from "@/lib/format";
@@ -15,6 +15,7 @@ interface SignalCardProps {
   onRemoveTicker?: (symbol: string) => void;
   onView?: (symbol: string) => void;
   onCompare?: (symbol: string) => void;
+  onPaperTrade?: (symbol: string) => void;
 }
 
 const DIRECTION_ICON = { bullish: TrendingUp, bearish: TrendingDown, neutral: Minus };
@@ -60,6 +61,7 @@ export default function SignalCard({
   onRemoveTicker,
   onView,
   onCompare,
+  onPaperTrade,
 }: SignalCardProps) {
   const { t } = useTranslation();
   const Icon = DIRECTION_ICON[signal.direction];
@@ -133,6 +135,17 @@ export default function SignalCard({
                 aria-label={t("common.signals.compareTicker")}
               >
                 <BarChart3 />
+              </Button>
+            ) : null}
+            {onPaperTrade ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 text-muted-foreground"
+                onClick={() => onPaperTrade(signal.symbol)}
+                aria-label={t("common.signals.paperTrade")}
+              >
+                <Wallet />
               </Button>
             ) : null}
             {onRemoveTicker ? (

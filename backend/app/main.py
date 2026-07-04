@@ -31,6 +31,7 @@ from app.routes import (
     signals,
     screener,
     market,
+    paper,
 )
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.access_log import AccessLogMiddleware
@@ -153,6 +154,7 @@ app.include_router(cron.router)
 app.include_router(signals.router)
 app.include_router(screener.router)
 app.include_router(market.router)
+app.include_router(paper.router)
 
 
 @app.get("/health")

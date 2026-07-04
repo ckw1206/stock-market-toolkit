@@ -7,7 +7,8 @@
     "settings": "Settings",
     "switchToChinese": "Switch to 中文",
     "switchToEnglish": "Switch to English",
-    "screener": "Screener"
+    "screener": "Screener",
+    "portfolio": "Portfolio"
   },
   "adminInvite": {
     "title": "Invitation Codes",
@@ -166,6 +167,7 @@
       "noSignal": "No signal",
       "viewOnDashboard": "View on dashboard",
       "compareTicker": "Compare ticker",
+      "paperTrade": "Paper trade this symbol",
       "stopTracking": "Stop tracking ticker",
       "dismissSignal": "Dismiss signal",
       "signalStrength": "Signal strength",
@@ -651,5 +653,43 @@
       "sector": "Sector"
     },
     "gapAndGoBadge": "Gap+Go"
+  },
+  "portfolio": {
+    "title": "Paper Trading Portfolio",
+    "cash": "Cash",
+    "equity": "Equity",
+    "unrealizedPnl": "Unrealized P&L",
+    "trade": {
+      "title": "Place a trade",
+      "symbol": "Symbol",
+      "side": "Side",
+      "buy": "Buy",
+      "sell": "Sell",
+      "qty": "Qty"
+    },
+    "positions": {
+      "title": "Open Positions",
+      "empty": "No open positions — place a trade above to get started",
+      "symbol": "Symbol",
+      "qty": "Qty",
+      "avgCost": "Avg cost",
+      "lastPrice": "Last price",
+      "marketValue": "Market value",
+      "unrealizedPnl": "Unrealized P&L"
+    },
+    "history": {
+      "title": "Trade History",
+      "empty": "No trades yet",
+      "executedAt": "Executed"
+    },
+    "toast": {
+      "bought": "Bought {{qty}} {{symbol}} @ ${{price}}",
+      "sold": "Sold {{qty}} {{symbol}} @ ${{price}}"
+    },
+    "errors": {
+      "loadFailed": "Failed to load portfolio",
+      "invalidTrade": "Enter a symbol and a positive quantity",
+      "tradeFailed": "Trade failed"
+    }
   }
 }

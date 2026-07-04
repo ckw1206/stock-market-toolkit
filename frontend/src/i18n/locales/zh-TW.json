@@ -7,7 +7,8 @@
     "settings": "設定",
     "switchToChinese": "切換至中文",
     "switchToEnglish": "切換至英文",
-    "screener": "選股器"
+    "screener": "選股器",
+    "portfolio": "投資組合"
   },
   "adminInvite": {
     "title": "邀請碼",
@@ -166,6 +167,7 @@
       "noSignal": "無訊號",
       "viewOnDashboard": "在儀表板檢視",
       "compareTicker": "比較股票代號",
+      "paperTrade": "模擬交易此股票",
       "stopTracking": "停止追蹤股票代號",
       "dismissSignal": "忽略訊號",
       "signalStrength": "訊號強度",
@@ -651,5 +653,43 @@
       "sector": "產業"
     },
     "gapAndGoBadge": "跳空續強"
+  },
+  "portfolio": {
+    "title": "模擬交易投資組合",
+    "cash": "現金",
+    "equity": "淨值",
+    "unrealizedPnl": "未實現損益",
+    "trade": {
+      "title": "下單交易",
+      "symbol": "股票代號",
+      "side": "買賣方向",
+      "buy": "買進",
+      "sell": "賣出",
+      "qty": "數量"
+    },
+    "positions": {
+      "title": "持倉部位",
+      "empty": "尚無持倉 — 請於上方下單開始",
+      "symbol": "股票代號",
+      "qty": "數量",
+      "avgCost": "平均成本",
+      "lastPrice": "最新價格",
+      "marketValue": "市值",
+      "unrealizedPnl": "未實現損益"
+    },
+    "history": {
+      "title": "交易紀錄",
+      "empty": "尚無交易紀錄",
+      "executedAt": "成交時間"
+    },
+    "toast": {
+      "bought": "已買進 {{qty}} 股 {{symbol}} @ ${{price}}",
+      "sold": "已賣出 {{qty}} 股 {{symbol}} @ ${{price}}"
+    },
+    "errors": {
+      "loadFailed": "無法載入投資組合",
+      "invalidTrade": "請輸入股票代號與正確的數量",
+      "tradeFailed": "交易失敗"
+    }
   }
 }

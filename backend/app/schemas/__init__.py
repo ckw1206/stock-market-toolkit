@@ -63,6 +63,7 @@ from app.schemas.ingestion import (
     JobRunResponse,
     IngestStatusResponse,
 )
+from app.schemas.paper import PaperTradeRequest
 
 __all__ = [
     # auth
@@ -89,4 +90,6 @@ __all__ = [
     "WatchlistCreate", "WatchlistResponse",
     # ingestion
     "JobRunResponse", "IngestStatusResponse",
+    # paper trading
+    "PaperTradeRequest",
 ]
