@@ -7,13 +7,14 @@ from typing import Optional
 
 from app.config import get_settings
 from app.database import AsyncSessionLocal
-from app.models import SignalScan, ScanResult
+from app.models import SignalScan, ScanResult, MarketBreadth
 from app.services.signals import (
     compute_analysis_impl,
     ProviderUnavailableError,
     NoDataError,
     ThinHistoryError,
 )
+from app.services.market_breadth import compute_breadth
 from app.services.universe import get_scan_universe
 from app.services.cache import cached, cache_key
 
@@ -115,9 +116,12 @@ async def run_signal_scan(job_run_id: Optional[int] = None) -> dict:
     for rank, r in enumerate(sells, 1):
         r.rank = rank
 
+    breadth_stats = compute_breadth(results)
+
     async with AsyncSessionLocal() as db:
         scan.results = results
         db.add(scan)
+        db.add(MarketBreadth(scan=scan, **breadth_stats))
         await db.commit()
         scan_id = scan.id
 

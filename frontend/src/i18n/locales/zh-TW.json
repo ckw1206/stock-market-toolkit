@@ -358,6 +358,19 @@
       "takeProfit3r": "停利 (3R)",
       "invalidInputs": "請輸入有效的帳戶資金、風險 %（0-100）與 ATR 倍數。",
       "zeroShares": "以此停損距離計算，風險預算不足以買進 1 股。"
+    },
+    "breadth": {
+      "title": "市場廣度",
+      "empty": "尚無掃描資料 — 首次夜間訊號掃描後即會顯示市場廣度",
+      "aboveSma50": "高於 SMA50",
+      "advancers": "上漲家數",
+      "decliners": "下跌家數",
+      "newHighs": "創新高",
+      "regime": {
+        "risk_on": "風險偏好",
+        "neutral": "中性",
+        "risk_off": "風險趨避"
+      }
     }
   },
   "login": {

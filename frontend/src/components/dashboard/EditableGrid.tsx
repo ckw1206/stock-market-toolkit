@@ -16,6 +16,7 @@ import NewsCard from "./NewsCard";
 import TopSignalsCard from "./TopSignalsCard";
 import HeatmapCard from "./HeatmapCard";
 import PositionSizeCard from "./PositionSizeCard";
+import BreadthCard from "./BreadthCard";
 import type { DashboardGridProps } from "./DashboardGrid";
 
 export default function EditableGrid({ stock, indicators, info, fundamentals, dividends, news, newsLoading, active, topSignals }: DashboardGridProps) {
@@ -36,6 +37,7 @@ export default function EditableGrid({ stock, indicators, info, fundamentals, di
     if (topSignals) s.add("topsignals");
     s.add("heatmap");
     s.add("positionsize");
+    s.add("breadth");
     return s;
   }, [fundamentals, dividends, news, topSignals]);
 
@@ -106,6 +108,9 @@ export default function EditableGrid({ stock, indicators, info, fundamentals, di
         </div>
         <div key="positionsize" className="h-full overflow-auto">
           <PositionSizeCard symbol={stock.symbol} />
+        </div>
+        <div key="breadth" className="h-full overflow-auto">
+          <BreadthCard />
         </div>
       </GridLayout>
     </div>

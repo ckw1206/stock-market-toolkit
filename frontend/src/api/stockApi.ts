@@ -186,6 +186,29 @@ export async function getHeatmap(): Promise<HeatmapData> {
   return res.data;
 }
 
+export interface BreadthHistoryPoint {
+  date: string | null;
+  pct_above_sma50: number | null;
+}
+
+export interface MarketBreadthData {
+  scanned_at: string | null;
+  total_symbols: number;
+  pct_above_sma50: number | null;
+  advancers: number;
+  decliners: number;
+  new_highs: number;
+  regime: "risk_on" | "neutral" | "risk_off";
+  history: BreadthHistoryPoint[];
+}
+
+export async function getMarketBreadth(): Promise<MarketBreadthData> {
+  const res = await axios.get(`${API}/api/market/breadth`, {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
 export interface PositionSizePlan {
   symbol: string;
   account: number;

@@ -14,6 +14,7 @@ import NewsCard from "./NewsCard";
 import TopSignalsCard from "./TopSignalsCard";
 import HeatmapCard from "./HeatmapCard";
 import PositionSizeCard from "./PositionSizeCard";
+import BreadthCard from "./BreadthCard";
 
 export interface DashboardGridProps {
   stock: StockData;
@@ -96,6 +97,10 @@ export default function DashboardGrid({ stock, indicators, info, fundamentals, d
 
       <div className="col-span-12 lg:col-span-4">
         <PositionSizeCard symbol={stock.symbol} />
+      </div>
+
+      <div className="col-span-12 lg:col-span-4">
+        <BreadthCard />
       </div>
     </div>
   );

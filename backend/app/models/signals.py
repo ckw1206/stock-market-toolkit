@@ -39,3 +39,20 @@ class ScanResult(Base):
     sector = Column(String, nullable=True)
 
     scan = relationship("SignalScan", back_populates="results")
+
+
+class MarketBreadth(Base):
+    """One row per nightly scan: aggregate market-wide stats over that scan's universe."""
+
+    __tablename__ = "market_breadth"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    scan_id = Column(Integer, ForeignKey("signal_scans.id", ondelete="CASCADE"), nullable=False, unique=True)
+    total_symbols = Column(Integer, nullable=False, default=0)
+    pct_above_sma50 = Column(Float, nullable=True)
+    advancers = Column(Integer, nullable=False, default=0)
+    decliners = Column(Integer, nullable=False, default=0)
+    new_highs = Column(Integer, nullable=False, default=0)
+    computed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    scan = relationship("SignalScan")
