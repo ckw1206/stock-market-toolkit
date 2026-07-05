@@ -61,6 +61,7 @@ async def test_run_signal_scan_ranks_buys_and_sells():
         mock_db.add = MagicMock()
         mock_db.commit = AsyncMock()
         mock_db.refresh = AsyncMock()
+        mock_db.flush = AsyncMock()
         mock_db.__aenter__ = AsyncMock(return_value=mock_db)
         mock_db.__aexit__ = AsyncMock(return_value=None)
         mock_session.return_value = mock_db
@@ -95,6 +96,7 @@ async def test_run_signal_scan_tolerates_provider_failure():
         mock_db.add = MagicMock()
         mock_db.commit = AsyncMock()
         mock_db.refresh = AsyncMock()
+        mock_db.flush = AsyncMock()
         mock_db.__aenter__ = AsyncMock(return_value=mock_db)
         mock_db.__aexit__ = AsyncMock(return_value=None)
         mock_session.return_value = mock_db

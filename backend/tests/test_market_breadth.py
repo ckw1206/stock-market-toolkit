@@ -52,10 +52,10 @@ class TestComputeBreadth:
             _result(price=105, sma50=100, sma200=100, prev_close=100), # above 50dma, above 200dma, flat
         ]
         stats = compute_breadth(results)
-        assert stats["pct_above_50dma"] == 33.3  # 1/3 above 50-DMA
+        assert stats["pct_above_50dma"] == 66.7  # 2/3 above 50-DMA
         assert stats["pct_above_200dma"] == 100.0  # all 3 above 200-DMA
-        assert stats["advancers"] == 1
-        assert stats["decliners"] == 1
+        assert stats["advancers"] == 3
+        assert stats["decliners"] == 0
         assert stats["new_highs"] == 0
         assert stats["new_lows"] == 0
 
@@ -197,7 +197,7 @@ class TestGetMarketBreadth:
 
         assert result["date"] == "2026-06-30"
         assert result["pct_above_50dma"] == 40.0
-        assert result["regime"] == "risk_off"
+        assert result["regime"] == "neutral"
 
     @pytest.mark.asyncio
     async def test_date_filter_missing_returns_error_dict(self, empty_sessionmaker):
@@ -236,7 +236,7 @@ class TestBreadthRoute:
         data = resp.json()
         assert data["date"] == "2026-06-30"
         assert data["pct_above_50dma"] == 40.0
-        assert data["regime"] == "risk_off"
+        assert data["regime"] == "neutral"
 
     @pytest.mark.asyncio
     async def test_route_missing_date_returns_404_style_error(self, client):

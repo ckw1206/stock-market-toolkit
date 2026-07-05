@@ -13,5 +13,5 @@ def _no_real_earnings_lookups():
     ``app.services.signals.get_next_earnings_date`` themselves in a nested
     `with` block, which takes precedence over this default for its duration.
     """
-    with patch("app.services.signals.get_next_earnings_date", AsyncMock(return_value=None)):
+    with patch("app.services.earnings.get_next_earnings_date", AsyncMock(return_value=None)):
         yield
