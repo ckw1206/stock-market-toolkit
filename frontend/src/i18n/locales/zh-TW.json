@@ -389,9 +389,11 @@
       "title": "市場廣度",
       "empty": "尚無掃描資料 — 首次夜間訊號掃描後即會顯示市場廣度",
       "aboveSma50": "高於 SMA50",
+      "aboveSma200": "高於 SMA200",
       "advancers": "上漲家數",
       "decliners": "下跌家數",
-      "newHighs": "創新高",
+      "newHighs": "52週高位",
+      "newLows": "52週低位",
       "regime": {
         "risk_on": "風險偏好",
         "neutral": "中性",

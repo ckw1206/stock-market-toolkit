@@ -389,9 +389,11 @@
       "title": "Market Breadth",
       "empty": "No scan yet — breadth appears after the first nightly signal scan",
       "aboveSma50": "Above SMA50",
+      "aboveSma200": "Above SMA200",
       "advancers": "Advancers",
       "decliners": "Decliners",
-      "newHighs": "New highs",
+      "newHighs": "52W Highs",
+      "newLows": "52W Lows",
       "regime": {
         "risk_on": "Risk-on",
         "neutral": "Neutral",

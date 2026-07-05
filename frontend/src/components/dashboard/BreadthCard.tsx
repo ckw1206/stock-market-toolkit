@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { AreaChart, Area, ResponsiveContainer, YAxis } from "recharts";
-import { getMarketBreadth, type MarketBreadthData } from "@/api/stockApi";
+import { getMarketBreadth, type BreadthData } from "@/api/stockApi";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,12 +13,12 @@ interface BreadthCardProps {
 }
 
 const REGIME_ICON = { risk_on: TrendingUp, risk_off: TrendingDown, neutral: Minus };
-const REGIME_CLASS: Record<MarketBreadthData["regime"], string> = {
+const REGIME_CLASS: Record<BreadthData["regime"], string> = {
   risk_on: "text-up",
   risk_off: "text-down",
   neutral: "text-neutral",
 };
-const REGIME_BADGE_VARIANT: Record<MarketBreadthData["regime"], "default" | "destructive" | "secondary"> = {
+const REGIME_BADGE_VARIANT: Record<BreadthData["regime"], "default" | "destructive" | "secondary"> = {
   risk_on: "default",
   risk_off: "destructive",
   neutral: "secondary",
@@ -34,9 +33,28 @@ function Stat({ label, value, className }: { label: string; value: string; class
   );
 }
 
+function PctBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] uppercase text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-2">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary"
+            style={{ width: `${value}%` }}
+          />
+        </div>
+        <span className="w-8 text-right font-mono text-xs tabular-nums text-muted-foreground">
+          {value.toFixed(0)}%
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function BreadthCard({ className }: BreadthCardProps) {
   const { t } = useTranslation();
-  const [data, setData] = useState<MarketBreadthData | null>(null);
+  const [breadth, setBreadth] = useState<BreadthData[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +62,7 @@ export default function BreadthCard({ className }: BreadthCardProps) {
     setLoading(true);
     setError(null);
     try {
-      setData(await getMarketBreadth());
+      setBreadth(await getMarketBreadth());
     } catch (err) {
       setError(err instanceof Error ? err.message : t("dashboard.failedToLoad"));
     } finally {
@@ -71,19 +89,19 @@ export default function BreadthCard({ className }: BreadthCardProps) {
     );
   }
 
-  const hasData = data != null && data.scanned_at != null;
-  const Icon = data ? REGIME_ICON[data.regime] : Minus;
+  const latest = breadth && breadth.length > 0 ? breadth[0] : null;
+  const Icon = latest ? REGIME_ICON[latest.regime] : Minus;
 
   return (
     <Card className={className}>
       <CardHeader className="px-4 pb-3 pt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Icon className={cn("size-4", data ? REGIME_CLASS[data.regime] : "text-neutral")} />
+            <Icon className={cn("size-4", latest ? REGIME_CLASS[latest.regime] : "text-neutral")} />
             <div className="text-sm font-medium">{t("dashboard.breadth.title")}</div>
-            {hasData && (
-              <Badge variant={REGIME_BADGE_VARIANT[data.regime]} className="text-[10px]">
-                {t(`dashboard.breadth.regime.${data.regime}`)}
+            {latest && (
+              <Badge variant={REGIME_BADGE_VARIANT[latest.regime]} className="text-[10px]">
+                {t(`dashboard.breadth.regime.${latest.regime}`)}
               </Badge>
             )}
           </div>
@@ -93,39 +111,48 @@ export default function BreadthCard({ className }: BreadthCardProps) {
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4 pt-0">
-        {error || !hasData ? (
+        {error || !latest ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
             {error ?? t("dashboard.breadth.empty")}
           </p>
         ) : (
-          <>
-            <div className="grid grid-cols-4 gap-2">
-              <Stat
-                label={t("dashboard.breadth.aboveSma50")}
-                value={data.pct_above_sma50 != null ? `${data.pct_above_sma50.toFixed(0)}%` : "—"}
-              />
-              <Stat label={t("dashboard.breadth.advancers")} value={String(data.advancers)} className="text-up" />
-              <Stat label={t("dashboard.breadth.decliners")} value={String(data.decliners)} className="text-down" />
-              <Stat label={t("dashboard.breadth.newHighs")} value={String(data.new_highs)} />
+          <div className="space-y-3">
+            {/* Row 1: % Above 50-DMA and % Above 200-DMA */}
+            <div className="grid grid-cols-2 gap-3">
+              <PctBar label={t("dashboard.breadth.aboveSma50")} value={latest.pct_above_50dma} />
+              <PctBar label={t("dashboard.breadth.aboveSma200")} value={latest.pct_above_200dma} />
             </div>
-            {data.history.length > 1 && (
-              <div className="mt-3 h-12 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data.history} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
-                    <YAxis domain={[0, 100]} hide />
-                    <Area
-                      type="monotone"
-                      dataKey="pct_above_sma50"
-                      stroke="hsl(var(--primary))"
-                      fill="hsl(var(--primary) / 0.15)"
-                      strokeWidth={1.5}
-                      isAnimationActive={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </>
+
+            {/* Row 2: Advancers vs Decliners */}
+            <div className="grid grid-cols-2 gap-3">
+              <Stat
+                label={t("dashboard.breadth.advancers")}
+                value={String(latest.advancers)}
+                className="text-up"
+              />
+              <Stat
+                label={t("dashboard.breadth.decliners")}
+                value={String(latest.decliners)}
+                className="text-down"
+              />
+            </div>
+
+            {/* Row 3: 52W Highs vs 52W Lows */}
+            <div className="grid grid-cols-2 gap-3">
+              <Stat label={t("dashboard.breadth.newHighs")} value={String(latest.new_highs)} />
+              <Stat label={t("dashboard.breadth.newLows")} value={String(latest.new_lows)} />
+            </div>
+
+            {/* Footer: regime badge + date */}
+            <div className="flex items-center justify-between pt-1">
+              {latest.regime && (
+                <Badge variant={REGIME_BADGE_VARIANT[latest.regime]} className="text-[10px]">
+                  {t(`dashboard.breadth.regime.${latest.regime}`)}
+                </Badge>
+              )}
+              <span className="ml-auto text-xs text-muted-foreground">{latest.date}</span>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

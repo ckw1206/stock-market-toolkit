@@ -186,23 +186,19 @@ export async function getHeatmap(): Promise<HeatmapData> {
   return res.data;
 }
 
-export interface BreadthHistoryPoint {
-  date: string | null;
-  pct_above_sma50: number | null;
-}
-
-export interface MarketBreadthData {
-  scanned_at: string | null;
-  total_symbols: number;
-  pct_above_sma50: number | null;
+export type BreadthData = {
+  date: string;
+  pct_above_50dma: number;
+  pct_above_200dma: number;
   advancers: number;
   decliners: number;
   new_highs: number;
+  new_lows: number;
   regime: "risk_on" | "neutral" | "risk_off";
-  history: BreadthHistoryPoint[];
-}
+};
 
-export async function getMarketBreadth(): Promise<MarketBreadthData> {
+// breadth[0] = latest; breadth[1..29] = history (oldest→newest)
+export async function getMarketBreadth(): Promise<BreadthData[]> {
   const res = await axios.get(`${API}/api/market/breadth`, {
     headers: authHeaders(),
   });
