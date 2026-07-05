@@ -2,6 +2,7 @@
 Stock Market Toolkit — FastAPI Backend (Production)
 """
 
+import os
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
@@ -111,9 +112,14 @@ async def lifespan(app: FastAPI):
 
     from app.scheduler import start_scheduler
 
-    scheduler = start_scheduler()
+    # Don't run the real background scheduler under pytest — nothing in the
+    # test suite needs a live 3am cron, and starting/stopping a real
+    # AsyncIOScheduler on every app boot (test_smoke.py, test_admin_smtp.py
+    # each boot the full lifespan) destabilized unrelated async tests.
+    scheduler = None if os.environ.get("PYTEST_CURRENT_TEST") else start_scheduler()
     yield
-    scheduler.shutdown()
+    if scheduler is not None:
+        scheduler.shutdown()
     log.info("Shutting down Stock Market Toolkit API...")
 
 
