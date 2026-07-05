@@ -69,7 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("access_token", access_token);
     localStorage.setItem("refresh_token", refresh_token);
     setToken(access_token);
-    await fetchUser(access_token);
+    // NOTE: fetchUser is NOT called here — the [token] useEffect (lines 49-61)
+    // fires after setToken and is the single authoritative source of the user fetch.
+    // The old code called fetchUser twice (once here, once from the effect) which
+    // caused a race where the effect's setLoading(false) could be skipped via the
+    // ignore flag if the login() fetch resolved first and triggered a state update
+    // that cancelled the pending effect.
   };
 
   const register = async (email: string, username: string, password: string) => {
@@ -84,8 +89,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  // isAuthenticated is true only after fetchUser has confirmed the token is valid.
+  // This prevents useWatchlist from racing the auth check on cold mount: if we
+  // used !!token, isAuthenticated would be true immediately from localStorage
+  // even while /api/auth/me is still in-flight — causing useWatchlist's refresh
+  // effect (which depends on isAuthenticated) to fire before the auth round-trip
+  // completes. On failed auth fetchUser clears the token, so isAuthenticated is
+  // safely false for an invalid/expired token.
+  const isAuthenticated = !!user;
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, isAuthenticated: !!user || !!token }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
