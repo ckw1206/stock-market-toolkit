@@ -5,7 +5,7 @@ tests never touch the real configured DATABASE_URL (the project's own
 sqlite dev file) — matching the pattern in test_paper_trading.py.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
