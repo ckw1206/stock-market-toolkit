@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.database import get_db
 from app.models import User, Watchlist
-from app.schemas import WatchlistCreate, WatchlistResponse
+from app.schemas import WatchlistCreate, WatchlistUpdate, WatchlistResponse
 from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/watchlist", tags=["watchlist"])
@@ -58,6 +58,33 @@ async def add_to_watchlist(
 
     entry = Watchlist(user_id=current_user.id, symbol=symbol)
     db.add(entry)
+    await db.commit()
+    await db.refresh(entry)
+    return entry
+
+
+@router.patch("/{symbol}", response_model=WatchlistResponse)
+async def update_watchlist_item(
+    symbol: str,
+    data: WatchlistUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Watchlist).where(
+            Watchlist.user_id == current_user.id,
+            Watchlist.symbol == symbol.upper(),
+        )
+    )
+    entry = result.scalar_one_or_none()
+    if not entry:
+        raise HTTPException(status_code=404, detail=f"{symbol} not found in watchlist")
+
+    if data.note is not None:
+        entry.note = data.note or None
+    if data.tags is not None:
+        entry.tags = sorted({t.strip().lower() for t in data.tags if t.strip()})
+
     await db.commit()
     await db.refresh(entry)
     return entry

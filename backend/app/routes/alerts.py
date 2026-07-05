@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from app.database import get_db
@@ -20,6 +20,7 @@ from app.schemas import (
     AlertCreate,
     AlertUpdate,
     AlertResponse,
+    AlertSnoozeRequest,
     TriggeredAlertResponse,
     NotificationSettingsResponse,
     NotificationSettingsUpdate,
@@ -271,6 +272,8 @@ async def update_notification_settings(
         settings.discord_enabled = data.discord_enabled
         settings.default_period = data.default_period
         settings.timezone = data.timezone
+        settings.quiet_start = data.quiet_start
+        settings.quiet_end = data.quiet_end
         # Per-user SMTP fields
         if data.smtp_host is not None:
             settings.smtp_host = data.smtp_host
@@ -298,6 +301,8 @@ async def update_notification_settings(
             discord_enabled=data.discord_enabled,
             default_period=data.default_period,
             timezone=data.timezone,
+            quiet_start=data.quiet_start,
+            quiet_end=data.quiet_end,
             # Per-user SMTP fields
             smtp_host=data.smtp_host,
             smtp_port=data.smtp_port or 587,
@@ -425,6 +430,40 @@ async def update_alert(
         .where(Alert.id == alert.id)
     )
     alert = result.scalar_one()
+    return alert
+
+
+@router.post("/{alert_id}/snooze", response_model=AlertResponse)
+async def snooze_alert(
+    alert_id: int,
+    data: AlertSnoozeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Snooze an alert for N minutes (0 clears an existing snooze)."""
+    result = await db.execute(
+        select(Alert)
+        .options(selectinload(Alert.conditions))
+        .where(Alert.id == alert_id, Alert.user_id == current_user.id)
+    )
+    alert = result.scalar_one_or_none()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
+    alert.snoozed_until = (
+        datetime.now(timezone.utc) + timedelta(minutes=data.minutes)
+        if data.minutes > 0
+        else None
+    )
+    await db.commit()
+
+    # Return the in-memory object rather than re-querying: the session has
+    # expire_on_commit=False, so `alert.snoozed_until` still holds the
+    # tzinfo-aware Python value we just assigned. A re-fetch would round-trip
+    # through the DB — SQLite silently drops tzinfo on DateTime(timezone=True)
+    # columns, which serializes as an offset-less ISO string. That string is
+    # ambiguous to JS `Date` parsing (treated as *local* time, not UTC) and
+    # broke the "snoozed" badge for any browser not in UTC.
     return alert
 
 

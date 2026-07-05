@@ -5,6 +5,7 @@ import {
   getAlerts,
   updateAlert,
   deleteAlert,
+  snoozeAlert,
   getTriggeredAlerts,
   markTriggeredAlertRead,
   getNotificationSettings,
@@ -38,7 +39,13 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import { Skeleton } from "../components/ui/skeleton";
-import { Bell, CheckCircle2, X, Plus, Trash2, Pencil } from "lucide-react";
+import { Bell, CheckCircle2, X, Plus, Trash2, Pencil, Clock } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import SymbolSearch from "@/components/common/SymbolSearch";
 import { fmt } from "../lib/format";
 import { toast } from "@/components/ui/sonner";
@@ -50,6 +57,33 @@ const CONDITION_VALUES = ["above", "below", "pct_change_up", "pct_change_down"] 
 const PERIOD_VALUES = ["5m", "15m", "30m", "1h", "4h", "1d"] as const;
 const METRIC_VALUES = ["price", "rsi", "macd_hist", "signal", "pct_change", "rvol"] as const;
 const OPERATOR_VALUES = ["gt", "lt", "crosses_above", "eq"] as const;
+
+// Backend timestamps that round-trip through SQLite (the project's own
+// default local-dev DB) lose their UTC offset — e.g. "2026-07-04T06:45:19"
+// instead of "...+00:00". A bare `new Date(...)` on an offset-less
+// date-*time* string is parsed by the JS spec as *local* time, not UTC,
+// which silently breaks any comparison/display in a non-UTC browser
+// timezone. Treat a string with no explicit offset as UTC.
+function parseUtcDate(iso: string): Date {
+  const hasOffset = /Z$|[+-]\d{2}:\d{2}$/.test(iso);
+  return new Date(hasOffset ? iso : `${iso}Z`);
+}
+
+const FALLBACK_TIMEZONES = [
+  "UTC", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+  "Europe/London", "Europe/Paris", "Asia/Taipei", "Asia/Shanghai", "Asia/Tokyo", "Asia/Singapore",
+] as const;
+
+// "UTC" is the server-side default (NotificationSettings.timezone) but
+// Intl.supportedValuesOf("timeZone") doesn't include the literal "UTC" alias
+// in most engines — without it, a <select value="UTC"> has no matching
+// <option> and silently renders whichever zone happens to be listed first.
+const TIMEZONE_OPTIONS: readonly string[] = [
+  "UTC",
+  ...(typeof Intl.supportedValuesOf === "function"
+    ? Intl.supportedValuesOf("timeZone")
+    : FALLBACK_TIMEZONES),
+];
 
 function conditionLabel(t: TFunction, ct: string): string {
   return CONDITION_VALUES.includes(ct as typeof CONDITION_VALUES[number])
@@ -507,6 +541,9 @@ function NotificationSettingsPanel({ settings, onUpdate }: {
   const { t } = useTranslation();
   const [discordWebhook, setDiscordWebhook] = useState(settings.discord_webhook_url || "");
   const [discordEnabled, setDiscordEnabled] = useState(settings.discord_enabled);
+  const [timezone, setTimezone] = useState(settings.timezone || "UTC");
+  const [quietStart, setQuietStart] = useState(settings.quiet_start || "");
+  const [quietEnd, setQuietEnd] = useState(settings.quiet_end || "");
   const [emailEnabled, setEmailEnabled] = useState(settings.email_enabled);
   const [emailAddress, setEmailAddress] = useState(settings.email_address || "");
   const [emailSubject, setEmailSubject] = useState(settings.email_subject || "");
@@ -527,6 +564,10 @@ function NotificationSettingsPanel({ settings, onUpdate }: {
   const [testingSmtp, setTestingSmtp] = useState(false);
 
   const handleSave = async () => {
+    if ((quietStart && !quietEnd) || (!quietStart && quietEnd)) {
+      setError(t("alerts.errors.quietHoursIncomplete"));
+      return;
+    }
     setLoading(true);
     setSaved(false);
     setError("");
@@ -538,6 +579,10 @@ function NotificationSettingsPanel({ settings, onUpdate }: {
         email_address: emailAddress || null,
         email_subject: emailSubject || null,
         email_body: emailBody || null,
+        timezone,
+        default_period: settings.default_period,
+        quiet_start: quietStart || null,
+        quiet_end: quietEnd || null,
         smtp_host: smtpHost || null,
         smtp_port: smtpPort ? Number(smtpPort) : null,
         smtp_use_tls: smtpUseTls,
@@ -760,6 +805,55 @@ function NotificationSettingsPanel({ settings, onUpdate }: {
           </>
         )}
 
+        {/* Quiet hours section */}
+        <div className="grid gap-3 rounded-lg border border-border p-4">
+          <p className="text-sm font-medium">{t("alerts.settings.quietHours.title")}</p>
+          <p className="text-xs text-muted-foreground">{t("alerts.settings.quietHours.description")}</p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="quiet-start">{t("alerts.settings.quietHours.start")}</Label>
+              <Input
+                id="quiet-start"
+                type="time"
+                value={quietStart}
+                onChange={e => setQuietStart(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="quiet-end">{t("alerts.settings.quietHours.end")}</Label>
+              <Input
+                id="quiet-end"
+                type="time"
+                value={quietEnd}
+                onChange={e => setQuietEnd(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="timezone">{t("alerts.settings.quietHours.timezone")}</Label>
+              <select
+                id="timezone"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                value={timezone}
+                onChange={e => setTimezone(e.target.value)}
+              >
+                {TIMEZONE_OPTIONS.map(tz => (
+                  <option className="bg-background text-foreground" key={tz} value={tz}>{tz}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {(quietStart || quietEnd) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-fit text-muted-foreground"
+              onClick={() => { setQuietStart(""); setQuietEnd(""); }}
+            >
+              {t("alerts.settings.quietHours.clear")}
+            </Button>
+          )}
+        </div>
+
         <Button onClick={handleSave} disabled={loading} className="w-fit">
           {loading ? t("alerts.settings.saving") : saved ? t("alerts.settings.saved") : t("alerts.settings.save")}
         </Button>
@@ -823,6 +917,14 @@ export default function AlertsPage() {
     try {
       await deleteAlert(alertId);
       setAlerts(prev => prev.filter(a => a.id !== alertId));
+    } catch { /* ignore */ }
+  };
+
+  const handleSnooze = async (alertId: number, minutes: number) => {
+    try {
+      const updated = await snoozeAlert(alertId, minutes);
+      setAlerts(prev => prev.map(a => a.id === alertId ? updated : a));
+      toast(minutes > 0 ? t("alerts.toast.snoozed") : t("alerts.toast.unsnoozed"));
     } catch { /* ignore */ }
   };
 
@@ -911,6 +1013,45 @@ export default function AlertsPage() {
                             </Badge>
                           );
                         })()}
+                        {alert.snoozed_until && parseUtcDate(alert.snoozed_until) > new Date() && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs shrink-0"
+                            title={t("alerts.snoozedUntil", {
+                              time: parseUtcDate(alert.snoozed_until).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+                            })}
+                          >
+                            {t("alerts.snoozedBadge")}
+                          </Badge>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground"
+                              aria-label={t("alerts.aria.snoozeAlert", { symbol: alert.symbol })}
+                            >
+                              <Clock />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleSnooze(alert.id, 60)}>
+                              {t("alerts.snooze.oneHour")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleSnooze(alert.id, 240)}>
+                              {t("alerts.snooze.fourHours")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleSnooze(alert.id, 1440)}>
+                              {t("alerts.snooze.oneDay")}
+                            </DropdownMenuItem>
+                            {alert.snoozed_until && (
+                              <DropdownMenuItem onClick={() => handleSnooze(alert.id, 0)}>
+                                {t("alerts.snooze.clear")}
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <Switch
                           aria-label={alert.enabled
                             ? t("alerts.aria.disableAlert", { symbol: alert.symbol })
