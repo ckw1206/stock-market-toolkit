@@ -172,15 +172,12 @@ class TestQuietHours:
             patch("app.services.alert_checker.market_provider", spec=FallbackChain) as mp,
             patch("app.services.alert_checker.datetime", _frozen_datetime(awake_now)),
             patch("app.services.alert_checker._send_discord_notification", AsyncMock(return_value=(True, 204, None))) as mock_discord2,
-            # Fully mock _send_notifications so the catch-up path
-            # (_dispatch_quiet_hours_catchup) uses our mock rather than the real
-            # function.  The mock returns "empty deliveries, notified=True" so the
-            # catch-up path marks the triggered alert as notified and the test's
-            # assert on mock_discord2.await_count == 1 passes.  Using wraps= on an
-            # async function is fragile and does not reliably route inner
-            # _send_discord_notification calls through the outer mock.
-            patch("app.services.alert_checker._send_notifications", AsyncMock(return_value=([], True))),
         ):
+            # No patch on _send_notifications needed: it looks up
+            # _send_discord_notification as a plain module-global at call time,
+            # so patching that name above is enough for the real
+            # _send_notifications (called by the catch-up path) to route through
+            # mock_discord2 — and it still builds real NotificationDelivery rows.
             # Price now back below threshold so the condition no longer
             # evaluates true — this run must not create a *fresh* trigger;
             # the only discord call expected is the catch-up of the held one.
