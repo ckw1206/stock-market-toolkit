@@ -8,7 +8,6 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-import app.services.alert_checker as alert_checker_module
 from app.database import Base
 from app.models import Alert, NotificationSettings, TriggeredAlert, NotificationDelivery
 from app.providers.chain import FallbackChain, TaggedValue
