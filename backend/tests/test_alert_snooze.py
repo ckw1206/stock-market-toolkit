@@ -145,7 +145,10 @@ class TestQuietHours:
             assert len(triggered) == 1
             assert triggered[0].notified is False
             deliveries = (await db.execute(select(NotificationDelivery))).scalars().all()
-            assert deliveries == []
+            # New behavior: quiet_hold delivery record is written so held alerts are visible
+            assert len(deliveries) == 1
+            assert deliveries[0].status == "quiet_hold"
+            assert deliveries[0].channel == "discord"
 
     @pytest.mark.asyncio
     async def test_catchup_delivers_once_quiet_hours_end(self, sessionmaker_with_alert):
@@ -171,15 +174,16 @@ class TestQuietHours:
             patch("app.services.alert_checker.AsyncSessionLocal", maker),
             patch("app.services.alert_checker.market_provider", spec=FallbackChain) as mp,
             patch("app.services.alert_checker.datetime", _frozen_datetime(awake_now)),
-            patch("app.services.alert_checker._send_discord_notification", AsyncMock(return_value=(True, 204, None))) as mock_discord2,
+            patch("app.services.alert_checker.httpx.AsyncClient", new_callable=AsyncMock) as mock_httpx,
         ):
             # Price now back below threshold so the condition no longer
             # evaluates true — this run must not create a *fresh* trigger;
-            # the only discord call expected is the catch-up of the held one.
+            # the only call expected is the catch-up digest via httpx.
+            mock_response = AsyncMock()
+            mock_response.status_code = 204
+            mock_httpx.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
             mp.get_history = AsyncMock(return_value=TaggedValue(_price_df(50.0), "yfinance", datetime.utcnow()))
             await check_alerts()
-
-        assert mock_discord2.await_count == 1
 
         async with maker() as db:
             from sqlalchemy import select
@@ -188,5 +192,7 @@ class TestQuietHours:
             assert len(triggered) == 1
             assert triggered[0].notified is True
             deliveries = (await db.execute(select(NotificationDelivery))).scalars().all()
-            assert len(deliveries) == 1
-            assert deliveries[0].status == "success"
+            # One quiet_hold from the initial hold, one success from digest catch-up
+            assert len(deliveries) == 2
+            digest_delivery = next(d for d in deliveries if d.channel == "quiet_digest")
+            assert digest_delivery.status == "success"
