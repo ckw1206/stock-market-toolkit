@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowDown, ArrowUp, SlidersHorizontal } from "lucide-react";
+import { ArrowDown, ArrowUp, SlidersHorizontal, Download } from "lucide-react";
 import {
   getScreener,
   type ScreenerData,
@@ -23,6 +23,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { exportCsv } from "@/lib/csv";
+
+const SCREENER_CSV_COLUMNS: { key: keyof ScreenerItem; label: string }[] = [
+  { key: "symbol", label: "Symbol" },
+  { key: "signal", label: "Signal" },
+  { key: "score", label: "Score" },
+  { key: "confidence", label: "Confidence" },
+  { key: "price", label: "Price" },
+  { key: "rsi", label: "RSI" },
+  { key: "rvol", label: "RVOL" },
+  { key: "breakout", label: "Breakout" },
+  { key: "volume_spike", label: "Volume Spike" },
+  { key: "sma20", label: "SMA20" },
+  { key: "sma50", label: "SMA50" },
+  { key: "pct_from_52w_high", label: "% From 52w High" },
+  { key: "pct_change_1d", label: "1d %" },
+  { key: "gap_and_go", label: "Gap+Go" },
+  { key: "sector", label: "Sector" },
+];
 
 const SORTABLE: { key: string; labelKey: string }[] = [
   { key: "score", labelKey: "screener.columns.score" },
@@ -373,14 +392,27 @@ export default function ScreenerPage() {
                 <p className="text-xs text-muted-foreground">
                   {t("screener.resultCount", { count: data.count })}
                 </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => setFilters(DEFAULT_FILTERS)}
-                >
-                  {t("screener.clearFilters")}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-xs"
+                    onClick={() =>
+                      exportCsv(`screener-${new Date().toISOString().slice(0, 10)}.csv`, data.results, SCREENER_CSV_COLUMNS)
+                    }
+                  >
+                    <Download className="size-3.5" />
+                    {t("screener.exportCsv")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setFilters(DEFAULT_FILTERS)}
+                  >
+                    {t("screener.clearFilters")}
+                  </Button>
+                </div>
               </div>
             </div>
           )}

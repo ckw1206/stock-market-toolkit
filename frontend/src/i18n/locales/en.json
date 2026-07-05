@@ -62,6 +62,7 @@
     "triggeredAt": "Triggered at ${{price}} (threshold: ${{threshold}})",
     "snoozedUntil": "Snoozed until {{time}}",
     "snoozedBadge": "Snoozed",
+    "exportCsv": "Export CSV",
     "snooze": {
       "oneHour": "Snooze 1 hour",
       "fourHours": "Snooze 4 hours",
@@ -651,6 +652,7 @@
     "noScanYet": "No scan yet — results appear after the first nightly signal scan",
     "resultCount": "{{count}} results",
     "clearFilters": "Clear filters",
+    "exportCsv": "Export CSV",
     "filters": {
       "signal": "Signal",
       "any": "Any",

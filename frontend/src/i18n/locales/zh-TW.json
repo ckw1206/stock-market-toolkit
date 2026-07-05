@@ -62,6 +62,7 @@
     "triggeredAt": "於 ${{price}} 觸發（門檻值：${{threshold}}）",
     "snoozedUntil": "已延後至 {{time}}",
     "snoozedBadge": "已延後",
+    "exportCsv": "匯出 CSV",
     "snooze": {
       "oneHour": "延後 1 小時",
       "fourHours": "延後 4 小時",
@@ -651,6 +652,7 @@
     "noScanYet": "尚無掃描資料 — 首次夜間訊號掃描後即會顯示結果",
     "resultCount": "{{count}} 筆結果",
     "clearFilters": "清除篩選",
+    "exportCsv": "匯出 CSV",
     "filters": {
       "signal": "訊號",
       "any": "全部",
