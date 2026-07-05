@@ -94,6 +94,8 @@ async def run_signal_scan(job_run_id: Optional[int] = None) -> dict:
                 rsi=indicators.get("rsi"),
                 sma20=indicators.get("sma20"),
                 sma50=indicators.get("sma50"),
+                sma200=indicators.get("sma200"),
+                prev_close=indicators.get("prev_close"),
                 volume_ratio=indicators.get("volume_ratio"),
                 pct_from_52w_high=indicators.get("pct_from_52w_high"),
                 pct_change_1d=indicators.get("pct_change_1d"),
@@ -118,10 +120,17 @@ async def run_signal_scan(job_run_id: Optional[int] = None) -> dict:
 
     breadth_stats = compute_breadth(results)
 
+    # Use today's UTC date as the breadth row's trading date.
+    # For a nightly scan run after US market close (~9pm UTC) this matches
+    # the just-closed trading day. Using date rather than scan_id as the pk
+    # enforces one breadth row per trading day (idempotent upsert semantics).
+    scan_date = _now().date()
+
     async with AsyncSessionLocal() as db:
         scan.results = results
         db.add(scan)
-        db.add(MarketBreadth(scan=scan, **breadth_stats))
+        await db.flush()  # get scan.id
+        db.add(MarketBreadth(date=scan_date, scan_id=scan.id, **breadth_stats))
         await db.commit()
         scan_id = scan.id
 

@@ -121,6 +121,18 @@ def compute_indicators(
         _clean(float(sma50_val.iloc[-1])) if len(close_series) >= 50 and not math.isnan(sma50_val.iloc[-1]) else None
     )
 
+    sma200_val = ta.sma(close_series, length=200)
+    latest_sma200 = (
+        _clean(float(sma200_val.iloc[-1])) if len(close_series) >= 200 and not math.isnan(sma200_val.iloc[-1]) else None
+    )
+
+    # Previous close (bar before last) — needed for advancers/decliners
+    prev_close_val = (
+        float(close_series.iloc[-2])
+        if n >= 2
+        else None
+    )
+
     # Last-bar percent change (bar-over-bar; daily change on daily data)
     pct_change_1d = (
         _clean(
@@ -142,6 +154,8 @@ def compute_indicators(
         "rsi": latest_rsi,
         "sma20": _clean(latest_sma20),
         "sma50": latest_sma50,
+        "sma200": latest_sma200,
+        "prev_close": prev_close_val,
         "pct_change_1d": pct_change_1d,
     }
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, JSON, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Boolean, JSON, DateTime, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -33,6 +33,8 @@ class ScanResult(Base):
     rsi = Column(Float, nullable=True)
     sma20 = Column(Float, nullable=True)
     sma50 = Column(Float, nullable=True)
+    sma200 = Column(Float, nullable=True)
+    prev_close = Column(Float, nullable=True)
     volume_ratio = Column(Float, nullable=True)
     pct_from_52w_high = Column(Float, nullable=True)
     pct_change_1d = Column(Float, nullable=True)
@@ -42,17 +44,20 @@ class ScanResult(Base):
 
 
 class MarketBreadth(Base):
-    """One row per nightly scan: aggregate market-wide stats over that scan's universe."""
+    """One row per trading day: aggregate market-wide breadth stats."""
 
     __tablename__ = "market_breadth"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    scan_id = Column(Integer, ForeignKey("signal_scans.id", ondelete="CASCADE"), nullable=False, unique=True)
-    total_symbols = Column(Integer, nullable=False, default=0)
-    pct_above_sma50 = Column(Float, nullable=True)
+    # date is the primary key; the scan that produced this breadth row is
+    # recorded via scan_id so we can join for scanned_at ordering.
+    date = Column(Date, primary_key=True)
+    scan_id = Column(Integer, ForeignKey("signal_scans.id", ondelete="CASCADE"), nullable=False)
+    pct_above_50dma = Column(Float, nullable=True)
+    pct_above_200dma = Column(Float, nullable=True)
     advancers = Column(Integer, nullable=False, default=0)
     decliners = Column(Integer, nullable=False, default=0)
     new_highs = Column(Integer, nullable=False, default=0)
+    new_lows = Column(Integer, nullable=False, default=0)
     computed_at = Column(DateTime(timezone=True), server_default=func.now())
 
     scan = relationship("SignalScan")
