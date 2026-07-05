@@ -174,14 +174,22 @@ class TestQuietHours:
             patch("app.services.alert_checker.AsyncSessionLocal", maker),
             patch("app.services.alert_checker.market_provider", spec=FallbackChain) as mp,
             patch("app.services.alert_checker.datetime", _frozen_datetime(awake_now)),
-            patch("app.services.notification.discord.httpx.AsyncClient", new_callable=AsyncMock) as mock_httpx,
+            patch("app.services.alert_checker._send_digest", AsyncMock(return_value=(
+                [
+                    NotificationDelivery(
+                        triggered_alert_id=None,
+                        user_id="u1",
+                        channel="quiet_digest",
+                        status="success",
+                        error=None,
+                    )
+                ],
+                True,  # notified
+            ))) as mock_digest,
         ):
             # Price now back below threshold so the condition no longer
             # evaluates true — this run must not create a *fresh* trigger;
-            # the only call expected is the catch-up digest via httpx.
-            mock_response = AsyncMock()
-            mock_response.status_code = 204
-            mock_httpx.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+            # the only call expected is the catch-up digest via _send_digest.
             mp.get_history = AsyncMock(return_value=TaggedValue(_price_df(50.0), "yfinance", datetime.utcnow()))
             await check_alerts()
 
