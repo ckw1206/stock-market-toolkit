@@ -1,7 +1,7 @@
 """Tests for GET /api/alerts/history — CSV export and pagination (issue #266)."""
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -41,9 +41,9 @@ def _make_triggered(id, symbol, triggered_at=None, **kwargs) -> TriggeredAlert:
 
 
 def _mock_execute(rows):
-    result = MagicMock()
-    result.scalars.return_value.all.return_value = rows
-    return result
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = rows
+    return AsyncMock(return_value=mock_result)
 
 
 class TestAlertHistoryJSON:
@@ -51,11 +51,13 @@ class TestAlertHistoryJSON:
         rows = [_make_triggered(1, "AAPL"), _make_triggered(2, "MSFT")]
 
         def override_get_db():
+            count_result = MagicMock()
+            count_result.scalar.return_value = 2
             return MagicMock(
-                execute=MagicMock(
+                execute=AsyncMock(
                     side_effect=[
                         _mock_execute(rows),
-                        MagicMock(scalar=MagicMock(return_value=2)),
+                        AsyncMock(return_value=count_result),
                     ]
                 )
             )
@@ -73,11 +75,13 @@ class TestAlertHistoryJSON:
 
     def test_pagination_params_passed(self, client):
         def override_get_db():
+            count_result = MagicMock()
+            count_result.scalar.return_value = 0
             return MagicMock(
-                execute=MagicMock(
+                execute=AsyncMock(
                     side_effect=[
                         _mock_execute([]),
-                        MagicMock(scalar=MagicMock(return_value=0)),
+                        AsyncMock(return_value=count_result),
                     ]
                 )
             )
@@ -98,7 +102,7 @@ class TestAlertHistoryCSV:
         rows = [_make_triggered(1, "AAPL")]
 
         def override_get_db():
-            return MagicMock(execute=MagicMock(return_value=_mock_execute(rows)))
+            return MagicMock(execute=AsyncMock(return_value=_mock_execute(rows)))
 
         app.dependency_overrides[get_db] = override_get_db
         try:
@@ -115,7 +119,7 @@ class TestAlertHistoryCSV:
         rows = [_make_triggered(1, "AAPL"), _make_triggered(2, "MSFT")]
 
         def override_get_db():
-            return MagicMock(execute=MagicMock(return_value=_mock_execute(rows)))
+            return MagicMock(execute=AsyncMock(return_value=_mock_execute(rows)))
 
         app.dependency_overrides[get_db] = override_get_db
         try:
@@ -131,7 +135,7 @@ class TestAlertHistoryCSV:
 
     def test_csv_empty_rows_still_returns_200(self, client):
         def override_get_db():
-            return MagicMock(execute=MagicMock(return_value=_mock_execute([])))
+            return MagicMock(execute=AsyncMock(return_value=_mock_execute([])))
 
         app.dependency_overrides[get_db] = override_get_db
         try:
