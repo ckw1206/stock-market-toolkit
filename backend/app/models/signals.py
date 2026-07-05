@@ -37,6 +37,7 @@ class ScanResult(Base):
     pct_from_52w_high = Column(Float, nullable=True)
     pct_change_1d = Column(Float, nullable=True)
     sector = Column(String, nullable=True)
+    days_to_earnings = Column(Float, nullable=True)
 
     scan = relationship("SignalScan", back_populates="results")
 

@@ -6,6 +6,7 @@ from app.models import User
 from app.schemas import StockDataResponse, IndicatorsResponse, CompareRequest, CompareResponse, CompareStockData
 from app.auth import get_current_user
 from app.providers import market_provider
+from app.services.earnings import get_next_earnings_date, days_until
 from app.utils.numeric import _clean_list
 import pandas_ta as ta
 import math
@@ -184,3 +185,17 @@ async def compare_stocks(
         )
 
     return CompareResponse(stocks=stocks)
+
+
+@router.get("/stock/{symbol}/earnings")
+async def get_stock_earnings(
+    symbol: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Return next earnings date and days-to-earnings for a symbol."""
+    iso = await get_next_earnings_date(symbol.upper())
+    return {
+        "symbol": symbol.upper(),
+        "next_earnings_date": iso,
+        "days_to_earnings": days_until(iso),
+    }

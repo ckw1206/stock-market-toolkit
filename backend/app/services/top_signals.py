@@ -98,6 +98,7 @@ async def run_signal_scan(job_run_id: Optional[int] = None) -> dict:
                 pct_from_52w_high=indicators.get("pct_from_52w_high"),
                 pct_change_1d=indicators.get("pct_change_1d"),
                 sector=await get_sector(symbol),
+                days_to_earnings=indicators.get("days_to_earnings"),
             )
             results.append(result)
             symbols_processed += 1
@@ -180,6 +181,7 @@ async def get_top_signals(db, limit: int = 10) -> dict:
             "volume_spike": r.volume_spike,
             "reasons": r.reasons or [],
             "rank": r.rank,
+            "days_to_earnings": r.days_to_earnings,
         }
 
     return {
