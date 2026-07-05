@@ -15,8 +15,7 @@ export default function HistoryTable({ stock }: { stock: StockData }) {
       close: stock.close[i],
       volume: stock.volume[i],
     }))
-    .reverse()
-    .slice(0, 30);
+    .reverse();
 
   return (
     <ChartCard title={t("common.cards.historicalData")} subtitle={t("common.cards.historicalDataSubtitle", { symbol: stock.symbol, count: rows.length })} bodyClassName="px-0">
