@@ -69,107 +69,107 @@ export default function SignalCard({
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="mb-3 flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Icon className={cn("size-4", DIRECTION_CLASS[signal.direction])} />
-            {onView ? (
-              <button
-                type="button"
-                className="cursor-pointer text-base font-semibold hover:underline"
-                onClick={() => onView(signal.symbol)}
-              >
-                {signal.symbol}
-              </button>
-            ) : (
-              <span className="text-base font-semibold">{signal.symbol}</span>
-            )}
-            {pending ? (
-              <Badge variant="outline">{t("common.signals.noSignal")}</Badge>
-            ) : (
-              <>
-                <Badge variant="secondary">{SIGNAL_TYPE_LABELS[signal.signal_type]}</Badge>
-                {signal.breakout && <Badge variant="default">{t("common.signals.breakout")}</Badge>}
-                {signal.rvol != null && (
-                  <Badge variant={signal.rvol > 2 ? "destructive" : "outline"}>
-                    {t("common.signals.rvolBadge", { value: signal.rvol.toFixed(1) })}
-                  </Badge>
-                )}
-                {signal.confluence === "aligned" && (
-                  <Badge variant="default">{t("common.signals.confluenceAligned")}</Badge>
-                )}
-                {signal.confluence === "conflict" && (
-                  <Badge variant="destructive">{t("common.signals.confluenceConflict")}</Badge>
-                )}
-                {signal.divergence === "bullish" && (
-                  <Badge variant="default">{t("common.signals.divergenceBullish")}</Badge>
-                )}
-                {signal.divergence === "bearish" && (
-                  <Badge variant="destructive">{t("common.signals.divergenceBearish")}</Badge>
-                )}
-                {signal.daysToEarnings != null && signal.daysToEarnings <= 5 && (
-                  <Badge variant="destructive">
-                    {t("common.signals.earningsSoon", { count: signal.daysToEarnings })}
-                  </Badge>
-                )}
-              </>
-            )}
+        <div className="mb-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Icon className={cn("size-4", DIRECTION_CLASS[signal.direction])} />
+              {onView ? (
+                <button
+                  type="button"
+                  className="cursor-pointer text-base font-semibold hover:underline"
+                  onClick={() => onView(signal.symbol)}
+                >
+                  {signal.symbol}
+                </button>
+              ) : (
+                <span className="text-base font-semibold">{signal.symbol}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              {onView ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 text-muted-foreground"
+                  onClick={() => onView(signal.symbol)}
+                  aria-label={t("common.signals.viewOnDashboard")}
+                >
+                  <LineChart />
+                </Button>
+              ) : null}
+              {onCompare ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 text-muted-foreground"
+                  onClick={() => onCompare(signal.symbol)}
+                  aria-label={t("common.signals.compareTicker")}
+                >
+                  <BarChart3 />
+                </Button>
+              ) : null}
+              {onPaperTrade ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 text-muted-foreground"
+                  onClick={() => onPaperTrade(signal.symbol)}
+                  aria-label={t("common.signals.paperTrade")}
+                >
+                  <Wallet />
+                </Button>
+              ) : null}
+              {onRemoveTicker ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 text-muted-foreground hover:text-destructive"
+                  onClick={() => onRemoveTicker(signal.symbol)}
+                  aria-label={t("common.signals.stopTracking")}
+                >
+                  <X />
+                </Button>
+              ) : onDismiss ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 text-muted-foreground"
+                  onClick={() => onDismiss(signal.id)}
+                  aria-label={t("common.signals.dismissSignal")}
+                >
+                  <X />
+                </Button>
+              ) : null}
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            {onView ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6 text-muted-foreground"
-                onClick={() => onView(signal.symbol)}
-                aria-label={t("common.signals.viewOnDashboard")}
-              >
-                <LineChart />
-              </Button>
-            ) : null}
-            {onCompare ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6 text-muted-foreground"
-                onClick={() => onCompare(signal.symbol)}
-                aria-label={t("common.signals.compareTicker")}
-              >
-                <BarChart3 />
-              </Button>
-            ) : null}
-            {onPaperTrade ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6 text-muted-foreground"
-                onClick={() => onPaperTrade(signal.symbol)}
-                aria-label={t("common.signals.paperTrade")}
-              >
-                <Wallet />
-              </Button>
-            ) : null}
-            {onRemoveTicker ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6 text-muted-foreground hover:text-destructive"
-                onClick={() => onRemoveTicker(signal.symbol)}
-                aria-label={t("common.signals.stopTracking")}
-              >
-                <X />
-              </Button>
-            ) : onDismiss ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6 text-muted-foreground"
-                onClick={() => onDismiss(signal.id)}
-                aria-label={t("common.signals.dismissSignal")}
-              >
-                <X />
-              </Button>
-            ) : null}
-          </div>
+          {!pending && (
+            <div className="flex flex-wrap gap-1">
+              <Badge variant="secondary">{SIGNAL_TYPE_LABELS[signal.signal_type]}</Badge>
+              {signal.breakout && <Badge variant="default">{t("common.signals.breakout")}</Badge>}
+              {signal.rvol != null && (
+                <Badge variant={signal.rvol > 2 ? "destructive" : "outline"}>
+                  {t("common.signals.rvolBadge", { value: signal.rvol.toFixed(1) })}
+                </Badge>
+              )}
+              {signal.confluence === "aligned" && (
+                <Badge variant="default">{t("common.signals.confluenceAligned")}</Badge>
+              )}
+              {signal.confluence === "conflict" && (
+                <Badge variant="destructive">{t("common.signals.confluenceConflict")}</Badge>
+              )}
+              {signal.divergence === "bullish" && (
+                <Badge variant="default">{t("common.signals.divergenceBullish")}</Badge>
+              )}
+              {signal.divergence === "bearish" && (
+                <Badge variant="destructive">{t("common.signals.divergenceBearish")}</Badge>
+              )}
+              {signal.daysToEarnings != null && signal.daysToEarnings <= 5 && (
+                <Badge variant="destructive">
+                  {t("common.signals.earningsSoon", { count: signal.daysToEarnings })}
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
 
         {pending ? (
