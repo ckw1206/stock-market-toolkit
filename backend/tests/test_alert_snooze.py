@@ -8,6 +8,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+import app.services.alert_checker as alert_checker_module
 from app.database import Base
 from app.models import Alert, NotificationSettings, TriggeredAlert, NotificationDelivery
 from app.providers.chain import FallbackChain, TaggedValue
@@ -172,6 +173,13 @@ class TestQuietHours:
             patch("app.services.alert_checker.market_provider", spec=FallbackChain) as mp,
             patch("app.services.alert_checker.datetime", _frozen_datetime(awake_now)),
             patch("app.services.alert_checker._send_discord_notification", AsyncMock(return_value=(True, 204, None))) as mock_discord2,
+            # Patch _send_notifications with wraps so that the real function runs
+            # (calling _send_discord_notification internally, hitting mock_discord2)
+            # while still being recorded as a call.  This is needed because the
+            # catch-up path (_dispatch_quiet_hours_catchup) calls _send_notifications
+            # directly, bypassing the alert-trigger path whose mock is scoped to the
+            # first with-block; without this, the call goes to the real function.
+            patch("app.services.alert_checker._send_notifications", wraps=alert_checker_module._send_notifications) as mock_send_notifs,
         ):
             # Price now back below threshold so the condition no longer
             # evaluates true — this run must not create a *fresh* trigger;
