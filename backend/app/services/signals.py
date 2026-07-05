@@ -48,6 +48,7 @@ class SignalResult(TypedDict):
     indicators: dict
     volume_spike: bool
     breakout: bool
+    divergence: str | None
 
 
 MIN_HISTORY_BARS = 20
@@ -338,11 +339,11 @@ def score_signals(
         reasons.append("Near 52-week high (no volume confirmation)")
 
     if divergence == "bullish":
-        score += 0.25
-        reasons.append("Bullish RSI divergence: price made a lower low, RSI a higher low")
+        score += 1.0
+        reasons.append("Bullish RSI divergence: price lower low, RSI higher low")
     elif divergence == "bearish":
-        score -= 0.25
-        reasons.append("Bearish RSI divergence: price made a higher high, RSI a lower high")
+        score -= 1.0
+        reasons.append("Bearish RSI divergence: price higher high, RSI lower high")
 
     return score, reasons
 
@@ -467,6 +468,7 @@ def build_signal_result(
         "indicators": result_indicators,
         "volume_spike": volume_spike,
         "breakout": breakout,
+        "divergence": divergence,
     }
 
 

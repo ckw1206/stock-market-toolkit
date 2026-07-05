@@ -1,5 +1,6 @@
 """Tests for analysis routes (GET /api/analysis/{symbol}, GET /api/analysis/signals)."""
 import pytest
+import pandas as pd
 from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 from app.main import app
@@ -308,4 +309,128 @@ def test_get_analysis_near_52w_high_no_volume_confirmation(client):
         reasons_lower = [r.lower() for r in data["reasons"]]
         assert any("near 52-week high" in r for r in reasons_lower)
         assert not any("breakout on volume" in r for r in reasons_lower)
+
+
+# ------------------------------------------------------------------
+# Divergence detection tests
+# ------------------------------------------------------------------
+
+def _flat_rsi(length: int, value: float) -> pd.Series:
+    """Return a constant RSI series of the given length."""
+    return pd.Series([value] * length)
+
+
+class TestDetectDivergenceBullish:
+    """Price makes a lower low while RSI makes a higher low → bullish."""
+
+    def test_bullish_divergence_detected(self):
+        from app.services.signals import detect_divergence  # lazy: avoid pandas_ta at module load
+        # Price: high → drop → slight recovery, then new lower low
+        # RSI: rising at the second low
+        rsi_vals = (
+            [50.0] * 20 +
+            [40.0, 42.0, 44.0, 46.0, 48.0,
+             45.0, 43.0, 41.0,
+             47.0, 50.0, 53.0]
+        )
+        close_vals = (
+            [100.0] * 20 +
+            [95.0, 93.0, 91.0, 90.0,
+             92.0, 91.0, 90.0,
+             88.0, 87.0, 86.0]
+        )
+        close = pd.Series(close_vals)
+        rsi = pd.Series(rsi_vals)
+        result = detect_divergence(close, rsi, lookback=30, order=3)
+        assert result == "bullish"
+
+    def test_bullish_divergence_score_and_reason(self):
+        from app.services.signals import score_signals  # lazy
+        score, reasons = score_signals(
+            bias=None, macd_hist=None, kdj_k=None, kdj_d=None,
+            vol_ratio=None, rvol=None, breakout=False, high_52w=None,
+            divergence="bullish",
+        )
+        assert score == 1.0
+        assert any("bullish" in r.lower() and "divergence" in r.lower() for r in reasons)
+
+
+class TestDetectDivergenceBearish:
+    """Price makes a higher high while RSI makes a lower high → bearish."""
+
+    def test_bearish_divergence_detected(self):
+        from app.services.signals import detect_divergence  # lazy
+        # Price: rise → pullback → new higher high; RSI declining at each high
+        close_vals = (
+            [80.0] * 20 +
+            [82.0, 84.0, 86.0, 88.0,
+             87.0, 86.0, 85.0,
+             89.0, 91.0, 93.0]
+        )
+        rsi_vals = (
+            [50.0] * 20 +
+            [58.0, 60.0, 62.0, 64.0,
+             63.0, 61.0, 60.0,
+             58.0, 56.0, 54.0]
+        )
+        close = pd.Series(close_vals)
+        rsi = pd.Series(rsi_vals)
+        result = detect_divergence(close, rsi, lookback=30, order=3)
+        assert result == "bearish"
+
+    def test_bearish_divergence_score_and_reason(self):
+        from app.services.signals import score_signals  # lazy
+        score, reasons = score_signals(
+            bias=None, macd_hist=None, kdj_k=None, kdj_d=None,
+            vol_ratio=None, rvol=None, breakout=False, high_52w=None,
+            divergence="bearish",
+        )
+        assert score == -1.0
+        assert any("bearish" in r.lower() and "divergence" in r.lower() for r in reasons)
+
+
+class TestDetectDivergenceNone:
+    """Series with no divergence → None."""
+
+    def test_no_divergence_returns_none(self):
+        from app.services.signals import detect_divergence  # lazy
+        # Steady uptrend: price and RSI both rising → no divergence
+        close = pd.Series([100.0 + i for i in range(30)])
+        rsi = pd.Series([50.0 + i * 0.5 for i in range(30)])
+        result = detect_divergence(close, rsi, lookback=30, order=3)
+        assert result is None
+
+    def test_flat_price_and_rsi_returns_none(self):
+        from app.services.signals import detect_divergence  # lazy
+        # Constant price and RSI → no divergence
+        close = pd.Series([100.0] * 30)
+        rsi = pd.Series([50.0] * 30)
+        result = detect_divergence(close, rsi, lookback=30, order=3)
+        assert result is None
+
+
+class TestDetectDivergenceEdgeCases:
+    """Edge cases: insufficient data."""
+
+    def test_fewer_than_2_pivots_returns_none(self):
+        from app.services.signals import detect_divergence  # lazy
+        # Very short series: can't find 2 pivots with order=3
+        close = pd.Series([100.0, 101.0, 99.0, 102.0, 98.0])
+        rsi = pd.Series([50.0, 52.0, 48.0, 54.0, 46.0])
+        result = detect_divergence(close, rsi, lookback=5, order=3)
+        assert result is None
+
+    def test_rsi_all_nan_returns_none(self):
+        from app.services.signals import detect_divergence  # lazy
+        close = pd.Series([100.0 + i for i in range(30)])
+        rsi = pd.Series([None] * 30)
+        result = detect_divergence(close, rsi, lookback=30, order=3)
+        assert result is None
+
+    def test_series_shorter_than_lookback_returns_none(self):
+        from app.services.signals import detect_divergence  # lazy
+        close = pd.Series([100.0 + i for i in range(10)])
+        rsi = pd.Series([50.0] * 10)
+        result = detect_divergence(close, rsi, lookback=60, order=3)
+        assert result is None
 

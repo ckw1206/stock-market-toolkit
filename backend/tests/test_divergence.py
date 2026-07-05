@@ -55,12 +55,12 @@ class TestScoreSignalsDivergenceLeg:
 
     def test_bullish_divergence_adds_positive_leg_and_reason(self):
         score, reasons = score_signals(**self._base_kwargs(), divergence="bullish")
-        assert score == 0.25
+        assert score == 1.0
         assert any("Bullish RSI divergence" in r for r in reasons)
 
     def test_bearish_divergence_adds_negative_leg_and_reason(self):
         score, reasons = score_signals(**self._base_kwargs(), divergence="bearish")
-        assert score == -0.25
+        assert score == -1.0
         assert any("Bearish RSI divergence" in r for r in reasons)
 
     def test_no_divergence_leaves_score_unchanged(self):
