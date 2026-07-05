@@ -137,7 +137,7 @@ export default function PositionSizeCard({ symbol, className }: PositionSizeCard
           {t("dashboard.positionSize.calculate")}
         </Button>
 
-        {loading && (
+        {loading && !plan && (
           <div className="mt-3 space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-full" />
@@ -148,8 +148,11 @@ export default function PositionSizeCard({ symbol, className }: PositionSizeCard
           <p className="mt-3 text-center text-sm text-muted-foreground">{error}</p>
         )}
 
-        {!loading && !error && plan && (
-          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+        {plan && (
+          <dl
+            className={`mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm ${loading ? "opacity-60" : ""}`}
+          >
+
             <dt className="text-muted-foreground">{t("dashboard.positionSize.entry")}</dt>
             <dd className="text-right font-mono tabular-nums">{plan.entry.toFixed(2)}</dd>
 
