@@ -341,7 +341,7 @@ class TestDetectDivergenceBullish:
         )
         close = pd.Series(close_vals)
         rsi = pd.Series(rsi_vals)
-        result = detect_divergence(close, rsi, lookback=30, order=3)
+        result = detect_divergence(close, rsi)
         assert result == "bullish"
 
     def test_bullish_divergence_score_and_reason(self):
@@ -351,7 +351,7 @@ class TestDetectDivergenceBullish:
             vol_ratio=None, rvol=None, breakout=False, high_52w=None,
             divergence="bullish",
         )
-        assert score == 1.0
+        assert score == 0.25
         assert any("bullish" in r.lower() and "divergence" in r.lower() for r in reasons)
 
 
@@ -375,7 +375,7 @@ class TestDetectDivergenceBearish:
         )
         close = pd.Series(close_vals)
         rsi = pd.Series(rsi_vals)
-        result = detect_divergence(close, rsi, lookback=30, order=3)
+        result = detect_divergence(close, rsi)
         assert result == "bearish"
 
     def test_bearish_divergence_score_and_reason(self):
@@ -385,7 +385,7 @@ class TestDetectDivergenceBearish:
             vol_ratio=None, rvol=None, breakout=False, high_52w=None,
             divergence="bearish",
         )
-        assert score == -1.0
+        assert score == -0.25
         assert any("bearish" in r.lower() and "divergence" in r.lower() for r in reasons)
 
 

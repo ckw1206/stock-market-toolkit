@@ -339,11 +339,11 @@ def score_signals(
         reasons.append("Near 52-week high (no volume confirmation)")
 
     if divergence == "bullish":
-        score += 1.0
-        reasons.append("Bullish RSI divergence: price lower low, RSI higher low")
+        score += 0.25
+        reasons.append("Bullish RSI divergence: price made a lower low, RSI a higher low")
     elif divergence == "bearish":
-        score -= 1.0
-        reasons.append("Bearish RSI divergence: price higher high, RSI lower high")
+        score -= 0.25
+        reasons.append("Bearish RSI divergence: price made a higher high, RSI a lower high")
 
     return score, reasons
 
