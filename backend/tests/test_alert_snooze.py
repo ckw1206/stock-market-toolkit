@@ -174,7 +174,7 @@ class TestQuietHours:
             patch("app.services.alert_checker.AsyncSessionLocal", maker),
             patch("app.services.alert_checker.market_provider", spec=FallbackChain) as mp,
             patch("app.services.alert_checker.datetime", _frozen_datetime(awake_now)),
-            patch("app.services.alert_checker.httpx.AsyncClient", new_callable=AsyncMock) as mock_httpx,
+            patch("app.services.notification.discord.httpx.AsyncClient", new_callable=AsyncMock) as mock_httpx,
         ):
             # Price now back below threshold so the condition no longer
             # evaluates true — this run must not create a *fresh* trigger;
