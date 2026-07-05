@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.15.0](https://github.com/ai-workflow-space/stock-market-toolkit/compare/v0.14.0...v0.15.0) (2026-07-04)
+
+
+### Features
+
+* ATR-based position-size and stop-loss calculator ([d048573](https://github.com/ai-workflow-space/stock-market-toolkit/commit/d04857370a060210ee8ef27ace17c8147855a5ce))
+* ATR-based position-size and stop-loss calculator ([#267](https://github.com/ai-workflow-space/stock-market-toolkit/issues/267)) ([d048573](https://github.com/ai-workflow-space/stock-market-toolkit/commit/d04857370a060210ee8ef27ace17c8147855a5ce))
+* earnings-date awareness ([#270](https://github.com/ai-workflow-space/stock-market-toolkit/issues/270)) ([d1caaa8](https://github.com/ai-workflow-space/stock-market-toolkit/commit/d1caaa81aab030259eb98b6dee5ce1713154792c))
+* earnings-date awareness ([#270](https://github.com/ai-workflow-space/stock-market-toolkit/issues/270)) ([d1caaa8](https://github.com/ai-workflow-space/stock-market-toolkit/commit/d1caaa81aab030259eb98b6dee5ce1713154792c))
+* multi-timeframe confluence (weekly trend confirmation) ([dccfa5f](https://github.com/ai-workflow-space/stock-market-toolkit/commit/dccfa5f65dec8d117058f9d273ab5e65a6db3bd1))
+* multi-timeframe confluence (weekly trend confirmation) ([#268](https://github.com/ai-workflow-space/stock-market-toolkit/issues/268)) ([dccfa5f](https://github.com/ai-workflow-space/stock-market-toolkit/commit/dccfa5f65dec8d117058f9d273ab5e65a6db3bd1))
+* RSI/MACD divergence detection ([b4e3bf4](https://github.com/ai-workflow-space/stock-market-toolkit/commit/b4e3bf46bf94391bfaa2667a7a5f52fa3a9165d5))
+* RSI/MACD divergence detection ([#269](https://github.com/ai-workflow-space/stock-market-toolkit/issues/269)) ([b4e3bf4](https://github.com/ai-workflow-space/stock-market-toolkit/commit/b4e3bf46bf94391bfaa2667a7a5f52fa3a9165d5))
+
 ## [0.14.0](https://github.com/ai-workflow-space/stock-market-toolkit/compare/v0.13.0...v0.14.0) (2026-07-03)
 
 
