@@ -209,6 +209,59 @@ export async function getMarketBreadth(): Promise<MarketBreadthData> {
   return res.data;
 }
 
+export interface PaperPosition {
+  symbol: string;
+  qty: number;
+  avg_cost: number;
+  last_price: number | null;
+  market_value: number | null;
+  unrealized_pnl: number | null;
+  unrealized_pnl_pct: number | null;
+}
+
+export interface PaperPortfolioData {
+  cash: number;
+  positions: PaperPosition[];
+  equity: number;
+  total_unrealized_pnl: number;
+}
+
+export interface PaperTradeRecord {
+  id: number;
+  symbol: string;
+  side: "buy" | "sell";
+  qty: number;
+  price: number;
+  executed_at: string | null;
+}
+
+export async function getPaperPortfolio(): Promise<PaperPortfolioData> {
+  const res = await axios.get(`${API}/api/paper/portfolio`, {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
+export async function getPaperHistory(): Promise<{ trades: PaperTradeRecord[] }> {
+  const res = await axios.get(`${API}/api/paper/history`, {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
+export async function postPaperTrade(
+  symbol: string,
+  side: "buy" | "sell",
+  qty: number
+): Promise<{ symbol: string; side: string; qty: number; price: number; cash_after: number }> {
+  const res = await axios.post(
+    `${API}/api/paper/trade`,
+    { symbol, side, qty },
+    { headers: authHeaders() }
+  );
+  return res.data;
+}
+
 export interface PositionSizePlan {
   symbol: string;
   account: number;

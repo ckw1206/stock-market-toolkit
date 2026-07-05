@@ -271,6 +271,10 @@ export default function SignalsPage() {
     (symbol: string) => navigate(`/compare?symbols=${symbol}`),
     [navigate],
   );
+  const handlePaperTrade = useCallback(
+    (symbol: string) => navigate(`/portfolio?symbol=${symbol}&side=buy`),
+    [navigate],
+  );
 
   // Single source of truth: every tracked symbol shows up, carrying its signal
   // when analysis is available and a placeholder otherwise.
@@ -405,6 +409,7 @@ export default function SignalsPage() {
                   onRemoveTicker={handleRemoveTicker}
                   onView={handleView}
                   onCompare={handleCompare}
+                  onPaperTrade={handlePaperTrade}
                 />
               ))}
             </div>

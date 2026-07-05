@@ -26,6 +26,8 @@ EXPECTED_SCHEMAS = [
     "WatchlistCreate", "WatchlistResponse",
     # ingestion
     "JobRunResponse", "IngestStatusResponse",
+    # paper trading
+    "PaperTradeRequest",
 ]
 
 
@@ -36,4 +38,4 @@ def test_all_schemas_importable():
 
 def test_package_exports_match_expected():
     assert set(schemas.__all__) == set(EXPECTED_SCHEMAS)
-    assert len(EXPECTED_SCHEMAS) == 48
+    assert len(EXPECTED_SCHEMAS) == 49
