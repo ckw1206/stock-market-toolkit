@@ -229,11 +229,11 @@ def test_indicators_endpoint_pads_lookback_and_trims(client):
     assert len(data["timestamp"]) == n_display
     # SMA20 needs 20 prior bars — with padding all display bars should have values
     assert data["sma20"].count(None) == 0, "SMA20 should have no nulls in display period"
-    # SMA50 — only bars >= 50 from the START of the padded df have values.
-    # The padded rows come first, so from the END of the padded df (which is the
-    # display period), the first n_pad rows won't have SMA50 computed.
-    # Since n_display=21 < 50, all SMA50 values in the display period should be None.
-    assert all(v is None for v in data["sma50"]), "SMA50 should be all-None when display < 50 bars"
+    # SMA50 — after trimming the first 200 padded rows, the 21-row response
+    # covers the LAST 21 rows of the padded df. Those rows have 200 prior bars
+    # behind them (from index -200 to -1), which is more than the 50-bar lookback
+    # needed for SMA50. So all display bars have valid SMA50 values.
+    assert data["sma50"].count(None) == 0, "SMA50 should have values (display period has full lookback)"
 
 
 def test_indicators_endpoint_passes_lookback_extra_to_provider(client):
