@@ -192,6 +192,7 @@ class TestQuietHours:
             # the only call expected is the catch-up digest via _send_digest.
             mp.get_history = AsyncMock(return_value=TaggedValue(_price_df(50.0), "yfinance", datetime.utcnow()))
             await check_alerts()
+            mock_digest.assert_called_once()
 
         async with maker() as db:
             from sqlalchemy import select
