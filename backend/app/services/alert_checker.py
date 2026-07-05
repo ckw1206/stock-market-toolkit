@@ -484,6 +484,7 @@ async def check_alerts():
                             condition_type=trigger_condition_type,
                             trigger_price=current_price,
                             threshold_value=trigger_threshold,
+                            triggered_at=now,
                             notified=False,
                             read=False,
                         )

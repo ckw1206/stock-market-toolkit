@@ -173,6 +173,11 @@ class TestQuietHours:
             patch("app.services.alert_checker.datetime", _frozen_datetime(awake_now)),
             patch("app.services.alert_checker._send_discord_notification", AsyncMock(return_value=(True, 204, None))) as mock_discord2,
         ):
+            # No patch on _send_notifications needed: it looks up
+            # _send_discord_notification as a plain module-global at call time,
+            # so patching that name above is enough for the real
+            # _send_notifications (called by the catch-up path) to route through
+            # mock_discord2 — and it still builds real NotificationDelivery rows.
             # Price now back below threshold so the condition no longer
             # evaluates true — this run must not create a *fresh* trigger;
             # the only discord call expected is the catch-up of the held one.
