@@ -11,11 +11,20 @@ import structlog
 
 log = structlog.get_logger(__name__)
 
-scheduler = AsyncIOScheduler()
 
+def start_scheduler() -> AsyncIOScheduler:
+    """Create and start a fresh scheduler instance.
 
-def start_scheduler() -> None:
+    A fresh instance per call (rather than a module-level singleton) matters
+    because APScheduler can't be restarted after shutdown — the FastAPI
+    lifespan runs start/shutdown once per app instance, and reusing one
+    scheduler object across multiple lifespan cycles (e.g. tests that boot
+    the app's lifespan more than once via TestClient) would try to restart
+    an already-shut-down scheduler.
+    """
     from app.routes.cron import scan_signals_job
+
+    scheduler = AsyncIOScheduler()
 
     async def run_scan_signals() -> None:
         result = await scan_signals_job()
@@ -27,6 +36,6 @@ def start_scheduler() -> None:
         hour=3,
         minute=0,
         id="scan_signals",
-        replace_existing=True,
     )
     scheduler.start()
+    return scheduler

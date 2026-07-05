@@ -109,9 +109,9 @@ async def lifespan(app: FastAPI):
         raise
     log.info("Migrations complete. Stock Market Toolkit API started.")
 
-    from app.scheduler import start_scheduler, scheduler
+    from app.scheduler import start_scheduler
 
-    start_scheduler()
+    scheduler = start_scheduler()
     yield
     scheduler.shutdown()
     log.info("Shutting down Stock Market Toolkit API...")
