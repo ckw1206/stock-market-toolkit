@@ -8,7 +8,12 @@ import pytest
 
 from app.models import User
 from app.providers.chain import FallbackChain, TaggedValue
-from app.services.signals import build_signal_result, weekly_bias, weekly_frame
+from app.services.signals import (
+    build_signal_result,
+    compute_confluence,
+    weekly_bias,
+    weekly_frame,
+)
 
 
 def _daily_df(n, start=100.0, step=0.0, seed=0):
@@ -70,6 +75,35 @@ class TestWeeklyBias:
         assert weekly_bias(weekly_frame(df)) == "bullish"
 
 
+class TestComputeConfluence:
+    def test_aligned_bullish(self):
+        result = compute_confluence("BUY", "bullish")
+        assert result["weekly_trend"] == "bullish"
+        assert result["weekly_confirmed"] is True
+        assert result["daily_signal"] == "BUY"
+        assert result["weekly_signal"] == "aligned"
+
+    def test_aligned_bearish(self):
+        result = compute_confluence("SELL", "bearish")
+        assert result["weekly_confirmed"] is True
+        assert result["weekly_signal"] == "aligned"
+
+    def test_conflicting_buy_bearish(self):
+        result = compute_confluence("BUY", "bearish")
+        assert result["weekly_confirmed"] is False
+        assert result["weekly_signal"] == "conflicting"
+
+    def test_conflicting_sell_bullish(self):
+        result = compute_confluence("SELL", "bullish")
+        assert result["weekly_confirmed"] is False
+        assert result["weekly_signal"] == "conflicting"
+
+    def test_neutral_any(self):
+        result = compute_confluence("NEUTRAL", "bullish")
+        assert result["weekly_confirmed"] is False
+        assert result["weekly_signal"] == "neutral"
+
+
 class TestBuildSignalResultConfluence:
     def _base_kwargs(self, score):
         return dict(
@@ -87,39 +121,45 @@ class TestBuildSignalResultConfluence:
         )
 
     def test_aligned_bullish_boosts_confidence_and_adds_reason(self):
-        result = build_signal_result(**self._base_kwargs(0.8), weekly_bias_val="bullish")
+        confluence = compute_confluence("BUY", "bullish")
+        result = build_signal_result(**self._base_kwargs(0.8), confluence=confluence)
         assert result["signal"] == "BUY"
         assert result["confidence"] > round(min(abs(0.8), 1.0), 2)
-        assert result["indicators"]["confluence"] == "aligned"
+        assert result["confluence"]["weekly_signal"] == "aligned"
+        assert result["confluence"]["weekly_confirmed"] is True
         assert any("Weekly trend confirms" in r for r in result["reasons"])
 
     def test_conflicting_bearish_weekly_lowers_confidence_and_warns(self):
-        result = build_signal_result(**self._base_kwargs(0.8), weekly_bias_val="bearish")
+        confluence = compute_confluence("BUY", "bearish")
+        result = build_signal_result(**self._base_kwargs(0.8), confluence=confluence)
         assert result["signal"] == "BUY"
         assert result["confidence"] < round(min(abs(0.8), 1.0), 2)
-        assert result["indicators"]["confluence"] == "conflict"
+        assert result["confluence"]["weekly_signal"] == "conflicting"
         assert any("Caution" in r for r in result["reasons"])
 
     def test_neutral_weekly_bias_does_not_change_confidence(self):
+        confluence = compute_confluence("BUY", "neutral")
         base_confidence = round(min(abs(0.8), 1.0), 2)
-        result = build_signal_result(**self._base_kwargs(0.8), weekly_bias_val="neutral")
+        result = build_signal_result(**self._base_kwargs(0.8), confluence=confluence)
         assert result["confidence"] == base_confidence
-        assert result["indicators"]["confluence"] == "neutral"
+        assert result["confluence"]["weekly_signal"] == "neutral"
         assert not any("Weekly" in r or "Caution" in r for r in result["reasons"])
 
-    def test_no_weekly_bias_leaves_confluence_none(self):
+    def test_no_confluence_leaves_field_none(self):
         result = build_signal_result(**self._base_kwargs(0.8))
-        assert result["indicators"]["confluence"] is None
-        assert result["indicators"]["weekly_bias"] is None
+        assert result["confluence"] is None
 
-    def test_neutral_daily_signal_skips_confluence_regardless_of_weekly(self):
-        result = build_signal_result(**self._base_kwargs(0.2), weekly_bias_val="bullish")
-        assert result["signal"] == "NEUTRAL"
-        assert result["indicators"]["confluence"] is None
+    def test_neutral_daily_with_bullish_weekly_nudges_confidence(self):
+        # NEUTRAL + non-neutral: nudge ±0.10
+        confluence = compute_confluence("NEUTRAL", "bullish")
+        base_confidence = round(min(abs(0.2), 1.0), 2)
+        result = build_signal_result(**self._base_kwargs(0.2), confluence=confluence)
+        assert result["confidence"] == round(base_confidence + 0.10, 2)
+        assert result["confluence"]["weekly_trend"] == "bullish"
 
 
 class TestAnalysisRouteConfluenceWiring:
-    def test_route_includes_confluence_field(self, client):
+    def test_route_includes_confluence_dict_at_top_level(self, client):
         daily_df = _daily_df(60, start=100.0, step=0.3, seed=1)
         weekly_source_df = _daily_df(400, start=60.0, step=0.3, seed=2)
 
@@ -134,5 +174,10 @@ class TestAnalysisRouteConfluenceWiring:
 
         assert response.status_code == 200
         data = response.json()
-        assert "confluence" in data["indicators"]
+        assert "confluence" in data
+        assert isinstance(data["confluence"], dict)
+        assert "weekly_trend" in data["confluence"]
+        assert "weekly_confirmed" in data["confluence"]
+        assert "weekly_signal" in data["confluence"]
+        assert "daily_signal" in data["confluence"]
         assert "weekly_bias" in data["indicators"]

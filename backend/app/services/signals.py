@@ -48,6 +48,7 @@ class SignalResult(TypedDict):
     indicators: dict
     volume_spike: bool
     breakout: bool
+    confluence: dict
 
 
 MIN_HISTORY_BARS = 20
@@ -199,6 +200,23 @@ def weekly_bias(wdf: pd.DataFrame) -> str | None:
     if last < sma10:
         return "bearish"
     return "neutral"
+
+
+def compute_confluence(daily_signal: str, weekly_trend: str) -> dict:
+    weekly_confirmed = (daily_signal == "BUY" and weekly_trend == "bullish") or \
+                       (daily_signal == "SELL" and weekly_trend == "bearish")
+    if weekly_confirmed:
+        weekly_signal = "aligned"
+    elif daily_signal in ("BUY", "SELL") and weekly_trend in ("bullish", "bearish"):
+        weekly_signal = "conflicting"
+    else:
+        weekly_signal = "neutral"
+    return {
+        "weekly_trend": weekly_trend,
+        "weekly_confirmed": weekly_confirmed,
+        "daily_signal": daily_signal,
+        "weekly_signal": weekly_signal,
+    }
 
 
 DIVERGENCE_LOOKBACK = 60
@@ -425,24 +443,51 @@ def build_signal_result(
     weekly_bias_val: str | None = None,
     divergence: str | None = None,
     days_to_earnings: int | None = None,
+    confluence: dict | None = None,
 ) -> SignalResult:
     """Build the final signal result dict."""
     signal = signal_from_score(score)
     confidence = min(abs(score), 1.0)
 
-    confluence = None
-    if weekly_bias_val is not None and signal in ("BUY", "SELL"):
+    # Legacy internal confluence logic when confluence dict not provided
+    if confluence is not None:
+        # New path: use the pre-computed confluence dict with per-signal adjustments
+        daily_signal = signal_from_score(score)
+        if confluence["weekly_confirmed"]:
+            if daily_signal == "BUY":
+                confidence = min(1.0, confidence + 0.15)
+                reasons.append("Weekly trend confirms daily BUY")
+            elif daily_signal == "SELL":
+                confidence = max(0.0, confidence - 0.15)
+                reasons.append("Weekly trend confirms daily SELL")
+        elif confluence["weekly_signal"] == "conflicting":
+            if daily_signal == "BUY":
+                confidence = max(0.0, confidence - 0.20)
+                reasons.append("Caution: weekly trend is bearish")
+            elif daily_signal == "SELL":
+                confidence = min(1.0, confidence + 0.20)
+                reasons.append("Caution: weekly trend is bullish")
+        # NEUTRAL + non-neutral: nudge by ±0.10
+        elif daily_signal == "NEUTRAL" and confluence["weekly_trend"] in ("bullish", "bearish"):
+            confidence = max(0.0, min(1.0, confidence + (0.10 if confluence["weekly_trend"] == "bullish" else -0.10)))
+        # indicators["confluence"] is intentionally NOT set when confluence dict exists
+        # (it's at the top level of SignalResult instead)
+    elif weekly_bias_val is not None and signal in ("BUY", "SELL"):
+        # Legacy path for callers that pass weekly_bias_val without confluence dict
         daily_dir = "bullish" if signal == "BUY" else "bearish"
         if weekly_bias_val == daily_dir:
             confidence = min(1.0, confidence + 0.15)
-            confluence = "aligned"
             reasons.append(f"Weekly trend confirms daily {signal}")
+            indicators = dict(indicators)
+            indicators["confluence"] = "aligned"
         elif weekly_bias_val == "neutral":
-            confluence = "neutral"
+            indicators = dict(indicators)
+            indicators["confluence"] = "neutral"
         else:
             confidence = max(0.0, confidence - 0.2)
-            confluence = "conflict"
             reasons.append(f"Caution: weekly trend is {weekly_bias_val}, daily is {signal}")
+            indicators = dict(indicators)
+            indicators["confluence"] = "conflict"
 
     if days_to_earnings is not None and 0 <= days_to_earnings <= 5:
         confidence = max(0.0, confidence - 0.15)
@@ -451,7 +496,6 @@ def build_signal_result(
     result_indicators = dict(indicators)
     result_indicators.update(compute_52w_metrics(latest_close, high_52w, low_52w))
     result_indicators["weekly_bias"] = weekly_bias_val
-    result_indicators["confluence"] = confluence
     result_indicators["divergence"] = divergence
     result_indicators["days_to_earnings"] = days_to_earnings
 
@@ -467,6 +511,7 @@ def build_signal_result(
         "indicators": result_indicators,
         "volume_spike": volume_spike,
         "breakout": breakout,
+        "confluence": confluence,
     }
 
 
@@ -529,6 +574,7 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
     low_52w = None
     breakout = False
     weekly_bias_val = None
+    df_1y = pd.DataFrame()
 
     try:
         result_1y = await provider.get_history(
@@ -562,6 +608,15 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
         divergence=divergence,
     )
 
+    # Multi-timeframe confluence: weekly trend adjustment
+    confluence_dict: dict | None = None
+    daily_signal = signal_from_score(score)
+    if period not in ("1d", "5d") and weekly_bias_val is not None and len(df_1y) >= 200:
+        wdf = weekly_frame(df_1y)
+        weekly_trend = weekly_bias(wdf)
+        if weekly_trend is not None:
+            confluence_dict = compute_confluence(daily_signal, weekly_trend)
+
     return build_signal_result(
         symbol=symbol,
         period=period,
@@ -577,4 +632,5 @@ async def compute_analysis_impl(symbol: str, period: str = "3mo", provider=None)
         weekly_bias_val=weekly_bias_val,
         divergence=divergence,
         days_to_earnings=days_to_earnings,
+        confluence=confluence_dict,
     )
