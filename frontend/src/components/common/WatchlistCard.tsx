@@ -23,11 +23,6 @@ function NoteEditor({ item, onSave }: { item: WatchlistCardProps["item"]; onSave
   const [value, setValue] = useState(item.note ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Keep local state in sync when item changes externally
-  useEffect(() => {
-    if (!editing) setValue(item.note ?? "");
-  }, [item.note, editing]);
-
   const startEdit = () => {
     setValue(item.note ?? "");
     setEditing(true);
@@ -36,7 +31,6 @@ function NoteEditor({ item, onSave }: { item: WatchlistCardProps["item"]; onSave
   useEffect(() => {
     if (editing && textareaRef.current) {
       textareaRef.current.focus();
-      // Position cursor at end
       textareaRef.current.selectionStart = textareaRef.current.value.length;
     }
   }, [editing]);
