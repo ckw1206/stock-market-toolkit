@@ -53,12 +53,14 @@ class TestAlertHistoryJSON:
         def override_get_db():
             count_result = MagicMock()
             count_result.scalar.return_value = 2
+            count_result.scalars.return_value.all.return_value = []
             call_count = 0
 
             def mock_execute(*args, **kwargs):
                 nonlocal call_count
                 call_count += 1
-                return _mock_execute(rows) if call_count == 1 else count_result
+                # call 1 = count query → count_result; call 2 = items query → rows
+                return count_result if call_count == 1 else _mock_execute(rows)
 
             return MagicMock(execute=AsyncMock(side_effect=mock_execute))
 
