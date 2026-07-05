@@ -450,11 +450,14 @@ async def snooze_alert(
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
 
-    alert.snoozed_until = (
-        datetime.now(timezone.utc) + timedelta(minutes=data.minutes)
-        if data.minutes > 0
-        else None
-    )
+    # `until` (absolute UTC) takes precedence over `minutes` (relative).
+    # `minutes=0` with no `until` explicitly clears any existing snooze.
+    if data.until is not None:
+        alert.snoozed_until = data.until
+    elif data.minutes is not None and data.minutes > 0:
+        alert.snoozed_until = datetime.now(timezone.utc) + timedelta(minutes=data.minutes)
+    else:
+        alert.snoozed_until = None
     await db.commit()
 
     # Return the in-memory object rather than re-querying: the session has

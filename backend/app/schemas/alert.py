@@ -72,7 +72,10 @@ class AlertResponse(BaseModel):
 
 class AlertSnoozeRequest(BaseModel):
     # Minutes to snooze for; 0 clears an existing snooze.
-    minutes: int = Field(..., ge=0, le=43200)  # cap at 30 days
+    # Mutually exclusive with `until`; if both are present `until` takes precedence.
+    minutes: Optional[int] = Field(None, ge=0, le=43200)  # cap at 30 days
+    # Absolute UTC timestamp at which the snooze expires.
+    until: Optional[datetime] = None
 
 
 class TriggeredAlertResponse(BaseModel):

@@ -19,7 +19,7 @@ from app.models import (
 from app.providers import market_provider
 from app.services.cache import cached, cache_key
 from app.services.mailer import send_email
-from app.services.notification.discord import _send_discord_notification
+from app.services.notification.discord import _send_discord_notification, CONDITION_LABELS
 from app.services.notification.email import render_alert_email
 from app.services.quiet_hours import in_quiet_hours
 from app.utils.numeric import _clean
@@ -301,6 +301,76 @@ async def _send_notifications(
     return delivery_records, notified
 
 
+async def _send_digest(
+    settings: NotificationSettings,
+    held: list[TriggeredAlert],
+    now: datetime,
+) -> tuple[list[NotificationDelivery], bool]:
+    """Send one consolidated digest for all held alerts. Returns (deliveries, notified)."""
+    delivery_records: list[NotificationDelivery] = []
+    if not held:
+        return [], False
+
+    # Build one summary string: "N alerts while you were away: MSFT 🔼 Above $150.00, AAPL 🔽 Below $175.00"
+    parts = []
+    for t in held:
+        label = CONDITION_LABELS.get(t.condition_type, t.condition_type)
+        if t.condition_type in ("above", "below"):
+            price_str = f"${t.trigger_price:.2f}"
+        else:
+            price_str = f"{t.threshold_value:.1f}%"
+        parts.append(f"{t.symbol} {label} {price_str}")
+    summary = f"{len(held)} alert{'s' if len(held) > 1 else ''} while you were away: {', '.join(parts)}"
+
+    notified = False
+    if settings.discord_enabled and settings.discord_webhook_url:
+        embed = {
+            "title": "🔔 Quiet-hours Digest",
+            "description": summary,
+            "color": 0x2ECC71,
+            "url": "https://stock-toolkit.app/alerts",
+        }
+        payload = {"content": "**Quiet-hours Digest**", "embeds": [embed]}
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(settings.discord_webhook_url, json=payload)
+                success = 200 <= resp.status_code < 300
+        except Exception as e:
+            log.warning(f"Quiet-hours digest Discord failed: {e}")
+            success = False
+        delivery_records.append(
+            NotificationDelivery(
+                triggered_alert_id=None,
+                user_id=settings.user_id,
+                channel="quiet_digest",
+                status="success" if success else "failed",
+                error=None if success else "Discord digest send failed",
+            )
+        )
+        if success:
+            notified = True
+
+    if settings.email_enabled and settings.email_address:
+        from app.services.mailer import send_email
+        subject = f"Stock Toolkit — {len(held)} alert{'s' if len(held) > 1 else ''} while you were away"
+        html_body = f"<p>{summary}</p><p><a href='https://stock-toolkit.app/alerts'>View alerts</a></p>"
+        email_success = await send_email(settings, settings.email_address, subject, html_body=html_body)
+        delivery_records.append(
+            NotificationDelivery(
+                triggered_alert_id=None,
+                user_id=settings.user_id,
+                channel="quiet_digest",
+                status="success" if email_success else "failed",
+                error=None if email_success else "Email digest send failed",
+            )
+        )
+        if email_success:
+            notified = True
+
+    return delivery_records, notified
+
+
 async def _dispatch_quiet_hours_catchup(db, now: datetime) -> int:
     """Catch up on notifications held back during a user's quiet hours.
 
@@ -308,8 +378,8 @@ async def _dispatch_quiet_hours_catchup(db, now: datetime) -> int:
     now, find their un-notified TriggeredAlert rows that fired *during* a
     quiet window (checked against each record's own triggered_at, not just
     "unnotified" — a delivery that failed outside quiet hours for an
-    unrelated reason must not be swept into this catch-up) and re-attempt
-    delivery once per alert.
+    unrelated reason must not be swept into this catch-up) and send exactly
+    one digest summarizing all held alerts.
 
     Returns the number of triggered alerts caught up.
     """
@@ -337,31 +407,19 @@ async def _dispatch_quiet_hours_catchup(db, now: datetime) -> int:
         if not held:
             continue
 
+        # Send one consolidated digest for all held alerts.
+        delivery_records, notified = await _send_digest(settings, held, now)
+
+        # Mark all held alerts as notified after successful digest delivery.
         for triggered_record in held:
-            alert = None
-            if triggered_record.alert_id is not None:
-                alert = await db.get(Alert, triggered_record.alert_id)
-            if alert is None:
-                # Alert was deleted since — nothing left to notify from.
-                continue
+            triggered_record.notified = notified
+        await db.flush()
 
-            delivery_records, notified = await _send_notifications(
-                settings,
-                alert,
-                triggered_record.symbol,
-                triggered_record.condition_type,
-                triggered_record.trigger_price,
-                triggered_record.threshold_value,
-                triggered_record.triggered_at,
-            )
-            if notified:
-                triggered_record.notified = True
-            await db.flush()
-            for dr in delivery_records:
-                dr.triggered_alert_id = triggered_record.id
-                db.add(dr)
-            caught_up += 1
+        for dr in delivery_records:
+            db.add(dr)
 
+        if notified:
+            caught_up += len(held)
         await db.commit()
 
     if caught_up:
@@ -496,18 +554,31 @@ async def check_alerts():
                         # and the user isn't in their configured quiet hours —
                         # quiet-hours holds are caught up after the main loop.
                         delivery_records: list[NotificationDelivery] = []
-                        if settings and not in_quiet_hours(settings, now):
-                            delivery_records, notified = await _send_notifications(
-                                settings,
-                                alert,
-                                symbol,
-                                trigger_condition_type,
-                                current_price,
-                                trigger_threshold,
-                                now,
-                            )
-                            if notified:
-                                triggered_record.notified = True
+                        if settings:
+                            if in_quiet_hours(settings, now):
+                                # Record the hold so users can see their alert
+                                # fired but was deferred due to quiet hours.
+                                delivery_records.append(
+                                    NotificationDelivery(
+                                        triggered_alert_id=None,  # filled after flush
+                                        user_id=alert.user_id,
+                                        channel="discord" if settings.discord_enabled else "email",
+                                        status="quiet_hold",
+                                        error="held for quiet hours",
+                                    )
+                                )
+                            else:
+                                delivery_records, notified = await _send_notifications(
+                                    settings,
+                                    alert,
+                                    symbol,
+                                    trigger_condition_type,
+                                    current_price,
+                                    trigger_threshold,
+                                    now,
+                                )
+                                if notified:
+                                    triggered_record.notified = True
 
                         # Flush to get triggered_record.id, then link deliveries
                         await db.flush()
