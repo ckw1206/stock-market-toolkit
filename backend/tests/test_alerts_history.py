@@ -43,7 +43,7 @@ def _make_triggered(id, symbol, triggered_at=None, **kwargs) -> TriggeredAlert:
 def _mock_execute(rows):
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = rows
-    return AsyncMock(return_value=mock_result)
+    return mock_result  # plain MagicMock; execute() is already awaited by the async route
 
 
 class TestAlertHistoryJSON:
@@ -53,14 +53,14 @@ class TestAlertHistoryJSON:
         def override_get_db():
             count_result = MagicMock()
             count_result.scalar.return_value = 2
-            return MagicMock(
-                execute=AsyncMock(
-                    side_effect=[
-                        _mock_execute(rows),
-                        AsyncMock(return_value=count_result),
-                    ]
-                )
-            )
+            call_count = 0
+
+            def mock_execute(*args, **kwargs):
+                nonlocal call_count
+                call_count += 1
+                return _mock_execute(rows) if call_count == 1 else count_result
+
+            return MagicMock(execute=AsyncMock(side_effect=mock_execute))
 
         app.dependency_overrides[get_db] = override_get_db
         try:
@@ -77,14 +77,14 @@ class TestAlertHistoryJSON:
         def override_get_db():
             count_result = MagicMock()
             count_result.scalar.return_value = 0
-            return MagicMock(
-                execute=AsyncMock(
-                    side_effect=[
-                        _mock_execute([]),
-                        AsyncMock(return_value=count_result),
-                    ]
-                )
-            )
+            call_count = 0
+
+            def mock_execute(*args, **kwargs):
+                nonlocal call_count
+                call_count += 1
+                return _mock_execute([]) if call_count == 1 else count_result
+
+            return MagicMock(execute=AsyncMock(side_effect=mock_execute))
 
         app.dependency_overrides[get_db] = override_get_db
         try:
