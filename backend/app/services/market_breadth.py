@@ -8,7 +8,7 @@ than one in a strong tape.
 from datetime import date
 from typing import Sequence
 
-from sqlalchemy import select, and_
+from sqlalchemy import select
 
 from app.models import ScanResult, MarketBreadth, SignalScan
 
