@@ -138,6 +138,73 @@ async def list_triggered_alerts(
     return result.scalars().all()
 
 
+@router.get("/history")
+async def get_alert_history(
+    symbol: Optional[str] = Query(None, description="Filter by symbol (case-insensitive prefix match)"),
+    start_date: Optional[datetime] = Query(None, description="Filter triggered alerts on or after this UTC timestamp"),
+    end_date: Optional[datetime] = Query(None, description="Filter triggered alerts on or before this UTC timestamp"),
+    format: Optional[str] = Query(None, description="If 'csv', return as CSV download"),
+    limit: int = Query(100, ge=1, le=10000, description="Pagination limit (ignored when format=csv)"),
+    offset: int = Query(0, ge=0, description="Pagination offset (ignored when format=csv)"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return triggered-alert history, optionally as CSV.
+
+    When ?format=csv is set, all matching rows are returned as a CSV download
+    (no pagination limit). Otherwise returns a paginated JSON list.
+    """
+    query = select(TriggeredAlert).where(TriggeredAlert.user_id == current_user.id)
+
+    if symbol:
+        query = query.where(TriggeredAlert.symbol.ilike(f"{symbol}%"))
+    if start_date:
+        query = query.where(TriggeredAlert.triggered_at >= start_date)
+    if end_date:
+        query = query.where(TriggeredAlert.triggered_at <= end_date)
+
+    query = query.order_by(TriggeredAlert.triggered_at.desc())
+
+    if format == "csv":
+        result = await db.execute(query)
+        rows = result.scalars().all()
+        data = [
+            {
+                "id": r.id,
+                "alert_id": r.alert_id,
+                "symbol": r.symbol,
+                "condition_type": r.condition_type,
+                "trigger_price": r.trigger_price,
+                "threshold_value": r.threshold_value,
+                "triggered_at": r.triggered_at.isoformat() if r.triggered_at else "",
+                "notified": r.notified,
+                "read": r.read,
+            }
+            for r in rows
+        ]
+        return to_csv_response(data, "alert_history.csv")
+
+    # JSON: apply pagination
+    count_query = select(func.count()).select_from(TriggeredAlert).where(
+        TriggeredAlert.user_id == current_user.id
+    )
+    if symbol:
+        count_query = count_query.where(TriggeredAlert.symbol.ilike(f"{symbol}%"))
+    if start_date:
+        count_query = count_query.where(TriggeredAlert.triggered_at >= start_date)
+    if end_date:
+        count_query = count_query.where(TriggeredAlert.triggered_at <= end_date)
+
+    count_result = await db.execute(count_query)
+    total = count_result.scalar() or 0
+
+    query = query.offset(offset).limit(limit)
+    result = await db.execute(query)
+    items = result.scalars().all()
+
+    return {"items": items, "total": total, "limit": limit, "offset": offset}
+
+
 @router.patch("/triggered/{alert_id}/read", response_model=TriggeredAlertResponse)
 async def mark_triggered_alert_read(
     alert_id: int,
