@@ -179,7 +179,7 @@ class TestQuietHours:
             # catch-up path (_dispatch_quiet_hours_catchup) calls _send_notifications
             # directly, bypassing the alert-trigger path whose mock is scoped to the
             # first with-block; without this, the call goes to the real function.
-            patch("app.services.alert_checker._send_notifications", wraps=alert_checker_module._send_notifications) as mock_send_notifs,
+            patch("app.services.alert_checker._send_notifications", wraps=alert_checker_module._send_notifications),
         ):
             # Price now back below threshold so the condition no longer
             # evaluates true — this run must not create a *fresh* trigger;
