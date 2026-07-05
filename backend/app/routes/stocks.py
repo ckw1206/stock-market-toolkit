@@ -14,6 +14,41 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["stocks"])
 
+# Approximate number of trading bars returned by yfinance for each period at
+# the 1-day interval (used to estimate how many rows the display period spans).
+# Intraday intervals (5m, 15m) return many more rows per calendar day, but the
+# period → bar-count relationship is monotonic, so these estimates are
+# conservative lower bounds that guarantee we never under-trim.
+_APPROX_DISPLAY_BARS = {
+    "1d": 1,
+    "5d": 5,
+    "1w": 5,
+    "1mo": 21,
+    "3mo": 63,
+    "6mo": 126,
+    "1y": 252,
+    "2y": 504,
+    "5y": 1260,
+    "max": 2520,
+}
+
+
+def _estimate_display_rows(period: str, n_total: int) -> int:
+    """Return the approximate number of display-period rows in *n_total*.
+
+    When ``lookback_extra`` padding is applied, ``n_total`` (the padded
+    DataFrame length) = display_rows + lookback_extra.  This function
+    inverts that relationship to find display_rows, so the caller can
+    compute ``trim = n_total - display_rows`` and strip the leading
+    ``trim`` rows.
+
+    Returns the lesser of ``n_total`` and the expected display-row count,
+    so it is safe to call even when the actual data returned is shorter
+    than the theoretical display period (e.g. thin trading history).
+    """
+    expected = _APPROX_DISPLAY_BARS.get(period, 21)
+    return min(n_total, expected)
+
 
 @router.get("/stock/{symbol}", response_model=StockDataResponse)
 async def get_stock(
@@ -67,9 +102,17 @@ async def get_indicators(
     interval_map = {"1d": "5m", "5d": "15m"}
     interval = interval_map.get(period, "1d")
 
+    # Maximum lookback needed by any indicator we compute.
+    # SMA20=20, SMA50=50, SMA200=200, RSI=14, MACD uses its own internal windows
+    # (12/26/9) which are fully contained within 35 extra bars; EMA uses the same
+    # window as its corresponding SMA.  BBands and ATR also use length-20/14
+    # windows.  The widest window among all computed indicators is SMA200=200.
+    max_indicator_lookback = 200
+
     try:
         result = await market_provider.get_history(
-            symbol.upper(), period=period, interval=interval
+            symbol.upper(), period=period, interval=interval,
+            lookback_extra=max_indicator_lookback,
         )
     except Exception as exc:
         log.error("Provider error for %s: %s", symbol, exc, exc_info=True)
@@ -84,10 +127,10 @@ async def get_indicators(
         raise HTTPException(status_code=404, detail=f"No data for {symbol} ({period})")
 
     close = df["Close"]
+    n = len(close)
 
     def _safe_ta_series(fn, *args, **kwargs):
         """Call a ta function, return Series.tolist() or [None]*n on failure."""
-        n = len(close)
         try:
             result = fn(*args, **kwargs)
             if result is None:
@@ -100,7 +143,6 @@ async def get_indicators(
 
     def _df_col(df, col):
         """Extract a column from DataFrame, or return [None]*n if unavailable."""
-        n = len(close)
         if df is None or not hasattr(df, "columns") or col not in df.columns:
             return [None] * n
         return df[col].tolist()
@@ -114,7 +156,8 @@ async def get_indicators(
 
     rsi_vals = _safe_ta_series(ta.rsi, close, length=14)
 
-    return IndicatorsResponse(
+    # Assemble full (padded) results
+    raw = IndicatorsResponse(
         symbol=symbol.upper(),
         period=period,
         cached_at=datetime.utcnow().isoformat(),
@@ -122,13 +165,13 @@ async def get_indicators(
         sma20=_clean_list(_safe_ta_series(ta.sma, close, length=20)),
         sma50=_clean_list(
             _safe_ta_series(ta.sma, close, length=50)
-            if len(close) >= 50
-            else [None] * len(close)
+            if n >= 50
+            else [None] * n
         ),
         sma200=_clean_list(
             _safe_ta_series(ta.sma, close, length=200)
-            if len(close) >= 200
-            else [None] * len(close)
+            if n >= 200
+            else [None] * n
         ),
         ema12=_clean_list(_safe_ta_series(ta.ema, close, length=12)),
         ema26=_clean_list(_safe_ta_series(ta.ema, close, length=26)),
@@ -145,6 +188,29 @@ async def get_indicators(
             _safe_ta_series(ta.atr, df["High"], df["Low"], df["Close"], length=14)
         ),
     )
+
+    # Trim padded leading rows so the response covers exactly the display period.
+    # The display period starts at the end of the DataFrame; the first
+    # (n_display - n_original) rows are lookback padding and must be removed.
+    n_original = _estimate_display_rows(period, len(df))
+    trim = n - n_original
+    if trim > 0 and n_original >= 0:
+        raw.timestamp = raw.timestamp[trim:]
+        raw.sma20 = raw.sma20[trim:]
+        raw.sma50 = raw.sma50[trim:]
+        raw.sma200 = raw.sma200[trim:]
+        raw.ema12 = raw.ema12[trim:]
+        raw.ema26 = raw.ema26[trim:]
+        raw.rsi = raw.rsi[trim:]
+        raw.macd = raw.macd[trim:]
+        raw.macd_signal = raw.macd_signal[trim:]
+        raw.macd_hist = raw.macd_hist[trim:]
+        raw.bb_upper = raw.bb_upper[trim:]
+        raw.bb_middle = raw.bb_middle[trim:]
+        raw.bb_lower = raw.bb_lower[trim:]
+        raw.atr = raw.atr[trim:]
+
+    return raw
 
 
 @router.post("/compare", response_model=CompareResponse)

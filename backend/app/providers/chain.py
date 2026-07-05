@@ -51,8 +51,18 @@ class FallbackChain:
 
     # ── Public async interface (used by routes) ───────────────────────
 
-    async def get_history(self, symbol: str, period: str, interval: str) -> TaggedValue:
-        """Fetch OHLCV history, falling back through the provider chain."""
+    async def get_history(
+        self, symbol: str, period: str, interval: str, lookback_extra: int = 0
+    ) -> TaggedValue:
+        """Fetch OHLCV history, falling back through the provider chain.
+
+        Parameters
+        ----------
+        lookback_extra:
+            Passed through to each provider's ``get_history``. When > 0,
+            providers return a DataFrame with ``lookback_extra`` additional
+            rows prepended to the display period.
+        """
         for name in self._chain:
             cb = self._circuit_breakers[name]
             if cb.is_open():
@@ -65,7 +75,7 @@ class FallbackChain:
                 continue
 
             try:
-                df: pd.DataFrame = await provider.get_history(symbol, period, interval)
+                df: pd.DataFrame = await provider.get_history(symbol, period, interval, lookback_extra)
                 if df.empty:
                     # Empty DataFrame is a soft "no data for this symbol" — do not
                     # trip the circuit breaker so other symbols are still tried.

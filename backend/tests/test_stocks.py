@@ -192,3 +192,125 @@ def test_get_stock_news_provider_failure_returns_empty_articles(client):
         data = response.json()
         assert data["symbol"] == "AAPL"
         assert data["articles"] == []
+
+
+# ─── Indicator lookback padding tests ─────────────────────────────────────────
+
+def test_indicators_endpoint_pads_lookback_and_trims(client):
+    """Indicators endpoint requests lookback_extra=200 and trims padded rows."""
+    from app.providers.chain import FallbackChain, TaggedValue
+    import pandas as pd
+
+    # Build a DataFrame long enough to contain padding + display rows.
+    # period=1mo has ~21 display bars; with 200 lookback_extra the total is ~221.
+    n_display = 21
+    n_pad = 200
+    n_total = n_display + n_pad
+
+    idx = pd.date_range("2024-01-01", periods=n_total, freq="D")
+    close = [100.0 + i * 0.1 for i in range(n_total)]
+    df = pd.DataFrame(
+        {"Open": close, "High": close, "Low": close, "Close": close, "Volume": [1000] * n_total},
+        index=idx,
+    )
+
+    with patch("app.routes.stocks.market_provider", spec=FallbackChain) as mock_provider:
+        mock_result = MagicMock(spec=TaggedValue)
+        mock_result.value = df
+        mock_result.source = "yfinance"
+        mock_result.as_of = datetime.utcnow()
+        mock_provider.get_history = AsyncMock(return_value=mock_result)
+
+        response = client.get("/api/stock/AAPL/indicators?period=1mo")
+
+    assert response.status_code == 200
+    data = response.json()
+    # After trim the response should cover only the display period (~21 bars)
+    assert len(data["timestamp"]) == n_display
+    # SMA20 needs 20 prior bars — with padding all display bars should have values
+    assert data["sma20"].count(None) == 0, "SMA20 should have no nulls in display period"
+    # SMA50 — only bars >= 50 from the START of the padded df have values.
+    # The padded rows come first, so from the END of the padded df (which is the
+    # display period), the first n_pad rows won't have SMA50 computed.
+    # Since n_display=21 < 50, all SMA50 values in the display period should be None.
+    assert all(v is None for v in data["sma50"]), "SMA50 should be all-None when display < 50 bars"
+
+
+def test_indicators_endpoint_passes_lookback_extra_to_provider(client):
+    """The indicators endpoint passes lookback_extra=200 to get_history."""
+    from app.providers.chain import FallbackChain, TaggedValue
+    import pandas as pd
+
+    n = 300
+    df = pd.DataFrame(
+        {"Open": [100.0] * n, "High": [100.0] * n, "Low": [100.0] * n,
+         "Close": [100.0] * n, "Volume": [1000] * n},
+        index=pd.date_range("2024-01-01", periods=n, freq="D"),
+    )
+
+    with patch("app.routes.stocks.market_provider", spec=FallbackChain) as mock_provider:
+        mock_result = MagicMock(spec=TaggedValue)
+        mock_result.value = df
+        mock_result.source = "yfinance"
+        mock_result.as_of = datetime.utcnow()
+        mock_provider.get_history = AsyncMock(return_value=mock_result)
+
+        client.get("/api/stock/AAPL/indicators?period=3mo")
+
+    # Verify lookback_extra=200 was passed
+    call_kwargs = mock_provider.get_history.call_args.kwargs
+    assert call_kwargs.get("lookback_extra") == 200
+
+
+def test_yfinance_provider_history_with_extra_fetches_longer_range():
+    """_history_with_extra requests start+end dates when lookback_extra > 0."""
+    from app.providers.yfinance import YFinanceMarketDataProvider
+    from unittest.mock import MagicMock, patch
+
+    provider = YFinanceMarketDataProvider()
+    mock_ticker = MagicMock()
+    mock_df = MagicMock()
+    mock_ticker.history.return_value = mock_df
+
+    with patch("app.providers.yfinance.yf.Ticker", return_value=mock_ticker):
+        provider._history_with_extra("AAPL", "1mo", "1d", lookback_extra=50)
+
+    # Should have been called with start+end, not period
+    mock_ticker.history.assert_called_once()
+    _, kwargs = mock_ticker.history.call_args
+    assert "start" in kwargs and "end" in kwargs
+    assert kwargs.get("auto_adjust", False) is True
+
+
+def test_yfinance_provider_history_without_extra_uses_period():
+    """_history_with_extra uses period= when lookback_extra == 0."""
+    from app.providers.yfinance import YFinanceMarketDataProvider
+    from unittest.mock import MagicMock, patch
+
+    provider = YFinanceMarketDataProvider()
+    mock_ticker = MagicMock()
+    mock_df = MagicMock()
+    mock_ticker.history.return_value = mock_df
+
+    with patch("app.providers.yfinance.yf.Ticker", return_value=mock_ticker):
+        provider._history_with_extra("AAPL", "1mo", "1d", lookback_extra=0)
+
+    mock_ticker.history.assert_called_once()
+    _, kwargs = mock_ticker.history.call_args
+    assert "period" in kwargs  # Uses period, not start/end
+
+
+def test_estimate_display_rows_returns_min_of_expected_and_total():
+    """_estimate_display_rows returns min(expected, n_total) so trim is safe."""
+    from app.routes.stocks import _estimate_display_rows
+
+    # Normal case: n_total > expected
+    assert _estimate_display_rows("1mo", 300) == 21
+    assert _estimate_display_rows("3mo", 500) == 63
+
+    # Edge case: n_total < expected (thin history)
+    assert _estimate_display_rows("1mo", 5) == 5
+    assert _estimate_display_rows("1y", 10) == 10
+
+    # Unknown period falls back to 21
+    assert _estimate_display_rows("unknown_period", 1000) == 21
