@@ -14,6 +14,8 @@ import DashboardGrid from "@/components/dashboard/DashboardGrid";
 
 const EditableGrid = lazy(() => import("@/components/dashboard/EditableGrid"));
 
+const LAST_SYMBOL_KEY = "dashboard.lastSymbol";
+
 const TIMEFRAME_OPTIONS = TIMEFRAMES.map((t) => ({ value: t.value, label: t.label }));
 const INDICATOR_OPTIONS = [
   { value: "sma20", label: "SMA 20" },
@@ -41,7 +43,11 @@ function DashboardSkeleton() {
 export default function DashboardPage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
-  const [symbol, setSymbol] = useState(() => searchParams.get("symbol")?.toUpperCase() || "AAPL");
+  const [symbol, setSymbol] = useState(() =>
+    searchParams.get("symbol")?.toUpperCase()
+    || localStorage.getItem(LAST_SYMBOL_KEY)
+    || "AAPL"
+  );
   const [period, setPeriod] = useState("1mo");
   const [stock, setStock] = useState<StockData | null>(null);
   const [indicators, setIndicators] = useState<Indicators | null>(null);
@@ -111,7 +117,13 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, [symbol, period, reloadKey, t]);
 
-  const onSymbol = (s: string) => { if (s !== symbol) { setLoading(true); setSymbol(s); } };
+  const onSymbol = (s: string) => {
+    if (s !== symbol) {
+      setLoading(true);
+      setSymbol(s);
+      localStorage.setItem(LAST_SYMBOL_KEY, s);
+    }
+  };
   const onPeriod = (p: string) => { if (p !== period) { setLoading(true); setPeriod(p); } };
   const retry = () => { setLoading(true); setReloadKey((k) => k + 1); };
 
