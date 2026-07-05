@@ -72,7 +72,13 @@
     "tabs": {
       "myAlerts": "My Alerts ({{count}})",
       "triggered": "Triggered",
+      "history": "History",
       "settings": "Settings"
+    },
+    "history": {
+      "exportCsv": "Export CSV",
+      "exporting": "Exporting...",
+      "exportError": "Failed to export alert history"
     },
     "dialog": {
       "title": "Create Price Alert",
@@ -633,7 +639,8 @@
       "sideBuy": "BUY",
       "sideSell": "SELL",
       "loading": "Loading...",
-      "disclaimer": "Past performance does not guarantee future results. This is not investment advice."
+      "disclaimer": "Past performance does not guarantee future results. This is not investment advice.",
+      "exportCsv": "Export CSV"
     },
     "toast": {
       "loadFailed": "Failed to load: {{symbols}}",

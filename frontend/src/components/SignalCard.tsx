@@ -1,7 +1,8 @@
-import { TrendingUp, TrendingDown, Minus, X, LineChart, BarChart3, Wallet } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, X, LineChart, BarChart3, Wallet, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { Signal, SignalDirection, SignalType } from "@/types";
+import type { Signal, SignalDirection, SignalType, BacktestStats } from "@/types";
 import { fmt } from "@/lib/format";
+import { exportCsv } from "@/lib/csv";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -200,13 +201,22 @@ export default function SignalCard({
             <p className="mb-2 text-sm leading-relaxed text-muted-foreground">{signal.description}</p>
 
             {signal.backtestStats && signal.direction !== "neutral" && (() => {
-              const side = signal.direction === "bullish"
-                ? signal.backtestStats.buy
-                : signal.backtestStats.sell;
+              const bs = signal.backtestStats;
+              const side = signal.direction === "bullish" ? bs.buy : bs.sell;
               if (!side || side.signal_days === 0) return null;
               const h5 = side.horizons["5"];
               const h20 = side.horizons["20"];
               const fmtReturn = (v: number) => (v >= 0 ? `+${v}` : `${v}`);
+
+              const handleExport = () => {
+                const rows: BacktestStats[] = [bs];
+                exportCsv("backtest_results.csv", rows, [
+                  { key: "symbol", label: "Symbol" },
+                  { key: "period", label: "Period" },
+                  { key: "bars", label: "Bars" },
+                ]);
+              };
+
               return (
                 <div className="mt-2 rounded border border-primary/10 bg-primary/5 p-2 text-xs">
                   <p className="mb-1 font-medium text-muted-foreground">
@@ -224,6 +234,15 @@ export default function SignalCard({
                   <p className="mt-1 text-[10px] text-muted-foreground/70">
                     {t("signals.historicalPerformance.disclaimer")}
                   </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-1.5 h-6 gap-1 px-1 text-[10px]"
+                    onClick={handleExport}
+                  >
+                    <Download className="size-3" />
+                    {t("signals.historicalPerformance.exportCsv")}
+                  </Button>
                 </div>
               );
             })()}

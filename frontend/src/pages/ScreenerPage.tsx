@@ -398,7 +398,7 @@ export default function ScreenerPage() {
                     size="sm"
                     className="h-7 gap-1 text-xs"
                     onClick={() =>
-                      exportCsv(`screener-${new Date().toISOString().slice(0, 10)}.csv`, data.results, SCREENER_CSV_COLUMNS)
+                      exportCsv("screener_results.csv", data.results, SCREENER_CSV_COLUMNS)
                     }
                   >
                     <Download className="size-3.5" />

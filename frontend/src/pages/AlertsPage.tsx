@@ -976,6 +976,7 @@ export default function AlertsPage() {
               {t("alerts.tabs.triggered")}
               {unreadCount > 0 && <Badge variant="destructive" className="ml-1.5">{unreadCount}</Badge>}
             </TabsTrigger>
+            <TabsTrigger value="history">{t("alerts.tabs.history")}</TabsTrigger>
             <TabsTrigger value="settings">{t("alerts.tabs.settings")}</TabsTrigger>
           </TabsList>
 
@@ -1173,6 +1174,43 @@ export default function AlertsPage() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="history">
+            <Card>
+              <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+                <CheckCircle2 className="size-8 text-muted-foreground" />
+                <p className="text-muted-foreground">{t("alerts.tabs.history")}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={async () => {
+                    try {
+                      const token = localStorage.getItem("access_token");
+                      const res = await fetch("/api/alerts/history?format=csv", {
+                        headers: { Authorization: `Bearer ${token}` },
+                      });
+                      if (!res.ok) throw new Error("fetch failed");
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = "alert_history.csv";
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    } catch {
+                      toast.error(t("alerts.history.exportError"));
+                    }
+                  }}
+                >
+                  <Download className="size-4" />
+                  {t("alerts.history.exportCsv")}
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="settings">

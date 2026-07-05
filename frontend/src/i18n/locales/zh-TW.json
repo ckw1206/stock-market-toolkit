@@ -72,7 +72,13 @@
     "tabs": {
       "myAlerts": "我的警報（{{count}}）",
       "triggered": "已觸發",
+      "history": "歷史",
       "settings": "設定"
+    },
+    "history": {
+      "exportCsv": "匯出 CSV",
+      "exporting": "匯出中...",
+      "exportError": "匯出警報歷史失敗"
     },
     "dialog": {
       "title": "建立價格警報",
@@ -633,7 +639,8 @@
       "sideBuy": "買入",
       "sideSell": "賣出",
       "loading": "載入中…",
-      "disclaimer": "過往表現不保證未來結果。這不是投資建議。"
+      "disclaimer": "過往表現不保證未來結果。這不是投資建議。",
+      "exportCsv": "匯出 CSV"
     },
     "toast": {
       "loadFailed": "載入失敗：{{symbols}}",
