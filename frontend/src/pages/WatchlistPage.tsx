@@ -1,89 +1,59 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Star, TrendingUp, BarChart3, Loader2, X, ArrowUpDown } from "lucide-react";
+import { Star, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { Badge } from "../components/ui/badge";
-import { Input } from "../components/ui/input";
 import { useWatchlist } from "../hooks/useWatchlist";
-import WatchlistButton from "../components/common/WatchlistButton";
-import type { WatchlistItem } from "../api/watchlistApi";
+import WatchlistCard from "../components/common/WatchlistCard";
 
 const ALL_TAGS = "__all__";
-type SortKey = "added" | "symbol";
 
-function NoteField({ item, onSave }: { item: WatchlistItem; onSave: (note: string) => void }) {
-  const [value, setValue] = useState(item.note ?? "");
-  return (
-    <textarea
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={() => {
-        if (value !== (item.note ?? "")) onSave(value);
-      }}
-      placeholder="Add a note (e.g. why you're watching this, entry plan)…"
-      rows={1}
-      className="w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm text-muted-foreground placeholder:text-muted-foreground/60 hover:border-input focus:border-input focus:outline-none"
-    />
-  );
+type SortCol = "symbol" | "price" | "change" | "signal";
+type SortDir = "asc" | "desc";
+
+interface SortState {
+  col: SortCol;
+  dir: SortDir;
 }
 
-function TagEditor({ item, onSave }: { item: WatchlistItem; onSave: (tags: string[]) => void }) {
-  const [input, setInput] = useState("");
-
-  const addTag = () => {
-    const next = input
-      .split(",")
-      .map((t) => t.trim().toLowerCase())
-      .filter(Boolean);
-    if (next.length === 0) return;
-    const merged = Array.from(new Set([...item.tags, ...next]));
-    onSave(merged);
-    setInput("");
-  };
-
-  const removeTag = (tag: string) => {
-    onSave(item.tags.filter((t) => t !== tag));
-  };
-
+function SortHeader({
+  col,
+  sort,
+  onSort,
+  children,
+}: {
+  col: SortCol;
+  sort: SortState;
+  onSort: (col: SortCol) => void;
+  children: React.ReactNode;
+}) {
+  const active = sort.col === col;
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {item.tags.map((tag) => (
-        <Badge key={tag} variant="secondary" className="gap-1 text-xs">
-          {tag}
-          <button
-            type="button"
-            onClick={() => removeTag(tag)}
-            className="cursor-pointer text-muted-foreground hover:text-destructive"
-            aria-label={`Remove tag ${tag}`}
-          >
-            <X className="size-3" />
-          </button>
-        </Badge>
-      ))}
-      <Input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            addTag();
-          }
-        }}
-        onBlur={addTag}
-        placeholder="+ tag"
-        className="h-6 w-20 border-none bg-transparent px-1 text-xs shadow-none focus-visible:ring-1"
-      />
-    </div>
+    <button
+      type="button"
+      onClick={() => onSort(col)}
+      className={`flex items-center gap-1 text-xs font-medium uppercase tracking-wide transition-colors ${
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+      }`}
+      aria-label={`Sort by ${col}`}
+    >
+      {children}
+      {active && (
+        sort.dir === "asc" ? (
+          <ArrowUp className="size-3" />
+        ) : (
+          <ArrowDown className="size-3" />
+        )
+      )}
+    </button>
   );
 }
 
 export default function WatchlistPage() {
-  const navigate = useNavigate();
-  const { items, loading, error, refresh, update } = useWatchlist();
+  const { items, loading, error, refresh } = useWatchlist();
   const [activeTag, setActiveTag] = useState(ALL_TAGS);
-  const [sortKey, setSortKey] = useState<SortKey>("added");
+  const [sort, setSort] = useState<SortState>({ col: "symbol", dir: "asc" });
 
   const allTags = useMemo(() => {
     const s = new Set<string>();
@@ -91,33 +61,32 @@ export default function WatchlistPage() {
     return Array.from(s).sort();
   }, [items]);
 
+  const handleSort = (col: SortCol) => {
+    setSort((prev) =>
+      prev.col === col
+        ? { col, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { col, dir: "asc" }
+    );
+  };
+
   const visibleItems = useMemo(() => {
     const filtered =
-      activeTag === ALL_TAGS ? items : items.filter((i) => i.tags.includes(activeTag));
+      activeTag === ALL_TAGS
+        ? items
+        : items.filter((i) => i.tags.includes(activeTag));
+
     const sorted = [...filtered];
-    if (sortKey === "symbol") {
-      sorted.sort((a, b) => a.symbol.localeCompare(b.symbol));
-    } else {
-      sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    }
+    sorted.sort((a, b) => {
+      if (sort.col === "symbol") {
+        return sort.dir === "asc"
+          ? a.symbol.localeCompare(b.symbol)
+          : b.symbol.localeCompare(a.symbol);
+      }
+      // price / change / signal — not on WatchlistItem, push all to bottom
+      return a.symbol.localeCompare(b.symbol);
+    });
     return sorted;
-  }, [items, activeTag, sortKey]);
-
-  const handleSaveNote = async (symbol: string, note: string) => {
-    try {
-      await update(symbol, { note });
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const handleSaveTags = async (symbol: string, tags: string[]) => {
-    try {
-      await update(symbol, { tags });
-    } catch {
-      /* ignore */
-    }
-  };
+  }, [items, activeTag, sort]);
 
   if (loading) {
     return (
@@ -134,23 +103,13 @@ export default function WatchlistPage() {
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Watchlist</h1>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSortKey((k) => (k === "added" ? "symbol" : "added"))}
-          >
-            <ArrowUpDown className="mr-1 size-3.5" />
-            {sortKey === "added" ? "Recently added" : "Symbol A-Z"}
-          </Button>
-          <Button variant="outline" onClick={refresh} disabled={loading}>
-            {loading ? <Loader2 className="mr-1 size-4 animate-spin" /> : null}
-            Refresh
-          </Button>
-        </div>
+        <Button variant="outline" onClick={refresh} disabled={loading}>
+          {loading ? <Loader2 className="mr-1 size-4 animate-spin" /> : null}
+          Refresh
+        </Button>
       </div>
 
-      {error && <p className="text-sm text-destructive mb-4">{error}</p>}
+      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
       {items.length === 0 ? (
         <Card>
@@ -160,11 +119,12 @@ export default function WatchlistPage() {
             <p className="text-xs text-muted-foreground">
               Star tickers from the Dashboard or Compare page to add them here
             </p>
-            <Button onClick={() => navigate("/")}>Browse stocks</Button>
+            <Button onClick={() => (window.location.href = "/")}>Browse stocks</Button>
           </CardContent>
         </Card>
       ) : (
         <>
+          {/* Tag filter bar */}
           {allTags.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-1.5">
               <Badge
@@ -187,40 +147,32 @@ export default function WatchlistPage() {
             </div>
           )}
 
+          {/* Column headers */}
+          <div className="mb-2 flex items-center gap-4 px-4">
+            <div className="w-8 shrink-0" /> {/* star spacer */}
+            <SortHeader col="symbol" sort={sort} onSort={handleSort}>
+              Symbol
+            </SortHeader>
+            <div className="flex-1" /> {/* spacer for tag+note area */}
+            <SortHeader col="price" sort={sort} onSort={handleSort}>
+              Price
+            </SortHeader>
+            <SortHeader col="change" sort={sort} onSort={handleSort}>
+              Change %
+            </SortHeader>
+            <SortHeader col="signal" sort={sort} onSort={handleSort}>
+              Signal
+            </SortHeader>
+            <div className="w-20 shrink-0" /> {/* nav buttons spacer */}
+          </div>
+
+          {/* Card list */}
           <div className="flex flex-col gap-3">
             {visibleItems.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="flex flex-col gap-2 py-4">
-                  <div className="flex items-center gap-4">
-                    <WatchlistButton symbol={item.symbol} className="!text-yellow-500" />
-                    <span
-                      className="flex-1 font-bold text-base cursor-pointer hover:underline"
-                      onClick={() => navigate(`/?symbol=${item.symbol}`)}
-                    >
-                      {item.symbol}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      Added {new Date(item.created_at).toLocaleDateString()}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/?symbol=${item.symbol}`)}
-                    >
-                      <TrendingUp />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/compare?symbols=${item.symbol}`)}
-                    >
-                      <BarChart3 />
-                    </Button>
-                  </div>
-                  <NoteField item={item} onSave={(note) => handleSaveNote(item.symbol, note)} />
-                  <TagEditor item={item} onSave={(tags) => handleSaveTags(item.symbol, tags)} />
-                </CardContent>
-              </Card>
+              <WatchlistCard
+                key={item.id}
+                item={item}
+              />
             ))}
           </div>
         </>
