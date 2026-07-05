@@ -32,6 +32,7 @@ const NAV_ITEMS = [
   { to: "/", labelKey: "nav.dashboard", end: true },
   { to: "/signals", labelKey: "nav.signals", end: false },
   { to: "/screener", labelKey: "nav.screener", end: false },
+  { to: "/watchlist", labelKey: "nav.watchlist", end: false },
   { to: "/portfolio", labelKey: "nav.portfolio", end: false },
   { to: "/compare", labelKey: "nav.compare", end: false },
   { to: "/alerts", labelKey: "nav.alerts", end: false },
