@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.16.0](https://github.com/ai-workflow-space/stock-market-toolkit/compare/v0.15.0...v0.16.0) (2026-07-05)
+
+
+### Features
+
+* alert snooze + quiet hours with catch-up digest ([#274](https://github.com/ai-workflow-space/stock-market-toolkit/issues/274)) ([4c5a87e](https://github.com/ai-workflow-space/stock-market-toolkit/commit/4c5a87eabc6dc171b6842280ead327fb6e542578))
+* CSV export for Screener results and triggered-alert history ([#276](https://github.com/ai-workflow-space/stock-market-toolkit/issues/276)) ([d4fa3b3](https://github.com/ai-workflow-space/stock-market-toolkit/commit/d4fa3b3450275b71f54b5e0cc464bdf49e64ebb6))
+* market breadth widget ([#272](https://github.com/ai-workflow-space/stock-market-toolkit/issues/272)) ([8324db9](https://github.com/ai-workflow-space/stock-market-toolkit/commit/8324db95751a470f957f656922cf6e5e177b3a01))
+* market breadth widget ([#272](https://github.com/ai-workflow-space/stock-market-toolkit/issues/272)) ([8324db9](https://github.com/ai-workflow-space/stock-market-toolkit/commit/8324db95751a470f957f656922cf6e5e177b3a01))
+* paper-trading portfolio ([#273](https://github.com/ai-workflow-space/stock-market-toolkit/issues/273)) ([3f6762e](https://github.com/ai-workflow-space/stock-market-toolkit/commit/3f6762e71b18040d33454c112f489c884ecb2c98))
+* watchlist notes, tags, and tag filtering ([#275](https://github.com/ai-workflow-space/stock-market-toolkit/issues/275)) ([8f23c9f](https://github.com/ai-workflow-space/stock-market-toolkit/commit/8f23c9f18b08452abc860df5aa9e8d92d905f29d))
+
 ## [0.15.0](https://github.com/ai-workflow-space/stock-market-toolkit/compare/v0.14.0...v0.15.0) (2026-07-04)
 
 
