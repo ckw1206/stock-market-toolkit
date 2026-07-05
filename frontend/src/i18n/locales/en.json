@@ -358,6 +358,19 @@
       "takeProfit3r": "Take profit (3R)",
       "invalidInputs": "Enter a valid account size, risk % (0-100), and ATR multiplier.",
       "zeroShares": "Risk budget too small for one share at this stop distance."
+    },
+    "breadth": {
+      "title": "Market Breadth",
+      "empty": "No scan yet — breadth appears after the first nightly signal scan",
+      "aboveSma50": "Above SMA50",
+      "advancers": "Advancers",
+      "decliners": "Decliners",
+      "newHighs": "New highs",
+      "regime": {
+        "risk_on": "Risk-on",
+        "neutral": "Neutral",
+        "risk_off": "Risk-off"
+      }
     }
   },
   "login": {
