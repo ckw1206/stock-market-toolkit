@@ -1,0 +1,112 @@
+name: Scheduled Jobs
+
+on:
+  schedule:
+    # 3 AM UTC nightly
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: 'Force run even if a scan is already in progress'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  BACKEND_URL: ${{ vars.BACKEND_URL || 'http://localhost:8001' }}
+
+jobs:
+  scan-signals:
+    name: Nightly Signal Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Trigger signal scan
+        id: trigger
+        run: |
+          echo "Triggering POST $BACKEND_URL/cron/scan-signals"
+          HTTP_CODE=$(curl -s -o /tmp/scan_response.json -w "%{http_code}" -X POST \
+            "$BACKEND_URL/cron/scan-signals" \
+            -H "Content-Type: application/json" \
+            --max-time 60)
+          BODY=$(cat /tmp/scan_response.json)
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "202" ]; then
+            echo "::error::Signal scan trigger failed with HTTP $HTTP_CODE"
+            cat /tmp/scan_response.json
+            exit 1
+          fi
+          echo "scan_trigger_response=$BODY" >> "$GITHUB_OUTPUT"
+
+      - name: Poll scan status until completion
+        id: poll
+        run: |
+          MAX_ATTEMPTS=30
+          INTERVAL=30
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            HTTP_CODE=$(curl -s -o /tmp/status_response.json -w "%{http_code}" \
+              -X GET "$BACKEND_URL/cron/scan-signals/status" \
+              -H "Content-Type: application/json" \
+              --max-time 30)
+
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "Status endpoint returned HTTP $HTTP_CODE, retrying..."
+              sleep $INTERVAL
+              continue
+            fi
+
+            STATUS=$(python3 -c "import json; d=json.load(open('/tmp/status_response.json')); print(d.get('last_run',{}).get('status','none') if d.get('last_run') else 'none')")
+            IS_RUNNING=$(python3 -c "import json; d=json.load(open('/tmp/status_response.json')); print('true' if d.get('is_running') else 'false')")
+
+            echo "Attempt $i/$MAX_ATTEMPTS — status: $STATUS, is_running: $IS_RUNNING"
+
+            if [ "$STATUS" = "completed" ]; then
+              SYMBOLS=$(python3 -c "import json; print(json.load(open('/tmp/status_response.json')).get('last_run',{}).get('symbols_processed','N/A'))")
+              ERRORS=$(python3 -c "import json; print(json.load(open('/tmp/status_response.json')).get('last_run',{}).get('errors','N/A'))")
+              echo "scan_status=completed" >> "$GITHUB_OUTPUT"
+              echo "symbols_processed=$SYMBOLS" >> "$GITHUB_OUTPUT"
+              echo "scan_errors=$ERRORS" >> "$GITHUB_OUTPUT"
+              echo "::notice::Signal scan completed — symbols: $SYMBOLS, errors: $ERRORS"
+              exit 0
+
+            elif [ "$STATUS" = "failed" ]; then
+              ERROR_DETAILS=$(python3 -c "import json; print(json.load(open('/tmp/status_response.json')).get('last_run',{}).get('error_details','unknown'))")
+              echo "scan_status=failed" >> "$GITHUB_OUTPUT"
+              echo "::error::Signal scan failed: $ERROR_DETAILS"
+              exit 1
+
+            elif [ "$STATUS" = "skipped" ]; then
+              echo "scan_status=skipped" >> "$GITHUB_OUTPUT"
+              echo "::warning::Signal scan was skipped (already running)"
+              exit 0
+            fi
+
+            # still running or unknown — wait and retry
+            if [ "$i" -lt $MAX_ATTEMPTS ]; then
+              echo "Waiting ${INTERVAL}s before next poll..."
+              sleep $INTERVAL
+            fi
+          done
+
+          echo "scan_status=timeout" >> "$GITHUB_OUTPUT"
+          echo "::error::Polling timed out after $MAX_ATTEMPTS attempts"
+          exit 1
+
+      - name: Write step summary
+        if: always()
+        run: |
+          STATUS="${{ fromJSON(steps.poll.outputs.scan_status || '\"unknown\"') }}"
+          SYMBOLS="${{ steps.poll.outputs.symbols_processed || 'N/A' }}"
+          ERRORS="${{ steps.poll.outputs.scan_errors || 'N/A' }}"
+
+          echo "### Nightly Signal Scan" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Status | \`$STATUS\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Symbols Processed | \`$SYMBOLS\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Errors | \`$ERRORS\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Triggered at: ${{ github.event.inputs.force_run && 'manual (forced)' || 'scheduled 3 AM UTC' }}" >> "$GITHUB_STEP_SUMMARY"
