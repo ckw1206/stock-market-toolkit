@@ -138,6 +138,15 @@ export async function snoozeAlert(alertId: number, minutes: number): Promise<Ale
   return res.data;
 }
 
+export async function snoozeAlertUntil(alertId: number, until: string): Promise<Alert> {
+  const res = await axios.post(
+    `${API}/api/alerts/${alertId}/snooze`,
+    { until },
+    { headers: authHeaders() }
+  );
+  return res.data;
+}
+
 export async function getTriggeredAlerts(unreadOnly = false): Promise<TriggeredAlert[]> {
   const res = await axios.get(`${API}/api/alerts/triggered`, {
     params: { unread_only: unreadOnly },

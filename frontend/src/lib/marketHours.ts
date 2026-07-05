@@ -113,3 +113,42 @@ export type MarketStatus = "open" | "closed";
 export function getMarketStatus(symbol: string): MarketStatus {
   return isMarketOpen(symbol) ? "open" : "closed";
 }
+
+/**
+ * Returns the UTC ISO string of the next US/Taiwan market open for the given symbol,
+ * skipping weekends and US federal holidays.
+ * Used for the "Until next market open" snooze option.
+ */
+export function nextMarketOpenUtc(symbol: string): string {
+  const sym = symbol.toUpperCase();
+  const isUS = !(sym.endsWith(".TW") || sym.endsWith(".TWO"));
+
+  // Start checking from the current time
+  let utcMs = Date.now();
+
+  // Move to the next minute boundary to avoid edge-case precision issues
+  utcMs = Math.ceil(utcMs / 60_000) * 60_000;
+
+  // Search up to 7 days ahead (covers a full week + holidays)
+  for (let i = 0; i < 7 * 24 * 60; i++) {
+    utcMs += 60_000; // advance one minute
+    const { weekday, hour, minute } = getMarketComponents(utcMs, isUS ? "America/New_York" : "Asia/Taipei");
+
+    // Weekend check
+    if (weekday === 0 || weekday === 6) continue;
+
+    // US market: skip holidays; Taiwan market has no extra holiday list in this util
+    if (isUS && isUsHoliday(utcMs)) continue;
+
+    // US market opens at 09:30 ET; Taiwan at 09:00 TPE
+    const openHour = isUS ? 9 : 9;
+    const openMin = isUS ? 30 : 0;
+
+    if (hour === openHour && minute === openMin) {
+      return new Date(utcMs).toISOString();
+    }
+  }
+
+  // Fallback: 24 hours from now (should never happen for US/Taiwan markets)
+  return new Date(Date.now() + 86_400_000).toISOString();
+}

@@ -6,6 +6,7 @@ import {
   updateAlert,
   deleteAlert,
   snoozeAlert,
+  snoozeAlertUntil,
   getTriggeredAlerts,
   markTriggeredAlertRead,
   getNotificationSettings,
@@ -17,7 +18,7 @@ import {
   type NotificationSettings,
 } from "../api/alertsApi";
 import { getStockInfo } from "../api/stockApi";
-import { getMarketStatus } from "../lib/marketHours";
+import { getMarketStatus, nextMarketOpenUtc } from "../lib/marketHours";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -95,6 +96,38 @@ const TRIGGERED_ALERT_CSV_COLUMNS: { key: keyof TriggeredAlert; label: string }[
   { key: "notified", label: "Notified" },
   { key: "read", label: "Read" },
 ];
+
+/* ─── Live Snooze Countdown Badge ─── */
+function SnoozeBadge({ snoozedUntil }: { snoozedUntil: string }) {
+  const { t } = useTranslation();
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setTick(v => v + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const until = parseUtcDate(snoozedUntil);
+  const now = new Date();
+  if (until <= now) return null;
+
+  const totalMinutes = Math.max(0, Math.floor((until.getTime() - now.getTime()) / 60_000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return (
+    <Badge
+      variant="outline"
+      className="text-xs shrink-0"
+      title={t("alerts.snoozedUntil", {
+        time: until.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+      })}
+    >
+      <span aria-hidden="true">&#128338;</span>{" "}
+      {t("alerts.snoozedBadge", { countdown: t("alerts.snoozedCountdown", { hours, minutes }) })}
+    </Badge>
+  );
+}
 
 function conditionLabel(t: TFunction, ct: string): string {
   return CONDITION_VALUES.includes(ct as typeof CONDITION_VALUES[number])
@@ -931,11 +964,16 @@ export default function AlertsPage() {
     } catch { /* ignore */ }
   };
 
-  const handleSnooze = async (alertId: number, minutes: number) => {
+  const handleSnooze = async (alertId: number, minutes?: number, until?: string) => {
     try {
-      const updated = await snoozeAlert(alertId, minutes);
+      let updated: Alert;
+      if (until) {
+        updated = await snoozeAlertUntil(alertId, until);
+      } else {
+        updated = await snoozeAlert(alertId, minutes ?? 0);
+      }
       setAlerts(prev => prev.map(a => a.id === alertId ? updated : a));
-      toast(minutes > 0 ? t("alerts.toast.snoozed") : t("alerts.toast.unsnoozed"));
+      toast(minutes === 0 ? t("alerts.toast.unsnoozed") : t("alerts.toast.snoozed"));
     } catch { /* ignore */ }
   };
 
@@ -1025,15 +1063,7 @@ export default function AlertsPage() {
                           );
                         })()}
                         {alert.snoozed_until && parseUtcDate(alert.snoozed_until) > new Date() && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs shrink-0"
-                            title={t("alerts.snoozedUntil", {
-                              time: parseUtcDate(alert.snoozed_until).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
-                            })}
-                          >
-                            {t("alerts.snoozedBadge")}
-                          </Badge>
+                          <SnoozeBadge snoozedUntil={alert.snoozed_until} />
                         )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1055,6 +1085,9 @@ export default function AlertsPage() {
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleSnooze(alert.id, 1440)}>
                               {t("alerts.snooze.oneDay")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleSnooze(alert.id, undefined, nextMarketOpenUtc(alert.symbol))}>
+                              {t("alerts.snooze.untilNextOpen")}
                             </DropdownMenuItem>
                             {alert.snoozed_until && (
                               <DropdownMenuItem onClick={() => handleSnooze(alert.id, 0)}>

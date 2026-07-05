@@ -61,12 +61,14 @@
     "combinatorAny": "任一",
     "triggeredAt": "於 ${{price}} 觸發（門檻值：${{threshold}}）",
     "snoozedUntil": "已延後至 {{time}}",
-    "snoozedBadge": "已延後",
+    "snoozedBadge": "已延後 {{countdown}}",
+    "snoozedCountdown": "剩餘 {{hours}} 小時 {{minutes}} 分",
     "exportCsv": "匯出 CSV",
     "snooze": {
       "oneHour": "延後 1 小時",
       "fourHours": "延後 4 小時",
       "oneDay": "延後 1 天",
+      "untilNextOpen": "延後至下次開盤",
       "clear": "清除延後"
     },
     "tabs": {

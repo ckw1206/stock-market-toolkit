@@ -61,12 +61,14 @@
     "combinatorAny": "ANY",
     "triggeredAt": "Triggered at ${{price}} (threshold: ${{threshold}})",
     "snoozedUntil": "Snoozed until {{time}}",
-    "snoozedBadge": "Snoozed",
+    "snoozedBadge": "Snoozed {{countdown}}",
+    "snoozedCountdown": "{{hours}}h {{minutes}}m remaining",
     "exportCsv": "Export CSV",
     "snooze": {
       "oneHour": "Snooze 1 hour",
       "fourHours": "Snooze 4 hours",
       "oneDay": "Snooze 1 day",
+      "untilNextOpen": "Until next market open",
       "clear": "Clear snooze"
     },
     "tabs": {
