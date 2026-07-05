@@ -3,9 +3,13 @@ from fastapi import APIRouter
 router = APIRouter(tags=["cron"])
 
 
-@router.post("/cron/scan-signals")
-async def cron_scan_signals():
-    """Cron endpoint to run the nightly signal scan across the universe."""
+async def scan_signals_job() -> dict:
+    """Run the nightly signal scan across the universe, recording a JobRun.
+
+    Shared by the /cron/scan-signals HTTP endpoint (manual/debug trigger) and
+    the in-process scheduler (app/scheduler.py), so both paths get identical
+    already-running/failure bookkeeping.
+    """
     from datetime import datetime, timezone
     from app.database import AsyncSessionLocal
     from app.models import JobRun
@@ -62,6 +66,14 @@ async def cron_scan_signals():
         await db.commit()
 
     return {"status": "ok", **counts}
+
+
+@router.post("/cron/scan-signals")
+async def cron_scan_signals():
+    """Manual/debug trigger for the nightly signal scan. The scan itself now
+    runs on its own via app/scheduler.py; this endpoint is kept for on-demand
+    reruns without needing to restart the process."""
+    return await scan_signals_job()
 
 
 @router.get("/cron/scan-signals/status")

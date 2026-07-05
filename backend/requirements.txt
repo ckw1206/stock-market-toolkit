@@ -25,6 +25,9 @@ slowapi==0.1.9
 # Structured logging
 structlog==24.4.0
 
+# In-process scheduling (nightly signal scan)
+apscheduler==3.10.4
+
 # Utilities
 pydantic[email]==2.10.0
 httpx==0.27.0
