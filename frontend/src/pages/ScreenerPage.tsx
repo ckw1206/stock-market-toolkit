@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowDown, ArrowUp, SlidersHorizontal, Download } from "lucide-react";
+import { ArrowDown, ArrowUp, Download } from "lucide-react";
 import {
   getScreener,
   type ScreenerData,
@@ -160,8 +160,7 @@ export default function ScreenerPage() {
   return (
     <div className="container mx-auto space-y-4 p-4">
       <div className="flex items-center gap-2">
-        <SlidersHorizontal className="size-5" />
-        <h1 className="text-xl font-semibold">{t("screener.title")}</h1>
+        <h1 className="text-2xl font-semibold">{t("screener.title")}</h1>
         {data?.scanned_at && (
           <span className="ml-auto text-xs text-muted-foreground">
             {t("screener.scannedAt", {
