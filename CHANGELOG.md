@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.17.0](https://github.com/ai-workflow-space/stock-market-toolkit/compare/v0.16.0...v0.17.0) (2026-07-06)
+
+
+### Features
+
+* **dashboard:** persist last-viewed ticker in localStorage ([#290](https://github.com/ai-workflow-space/stock-market-toolkit/issues/290)) ([1810627](https://github.com/ai-workflow-space/stock-market-toolkit/commit/1810627921ae17ff03874d1d2b12e74d7c437a86))
+* **paper-trading:** [#297](https://github.com/ai-workflow-space/stock-market-toolkit/issues/297) — starting_cash, backdated trades, undo, reset ([#301](https://github.com/ai-workflow-space/stock-market-toolkit/issues/301)) ([4a4fb9f](https://github.com/ai-workflow-space/stock-market-toolkit/commit/4a4fb9f96196f4751e7b54a1b4405b6b028b00c1))
+* **signals:** port NoteField, TagEditor, sort toggle, tag filter from WatchlistPage ([#302](https://github.com/ai-workflow-space/stock-market-toolkit/issues/302)) ([629c4e2](https://github.com/ai-workflow-space/stock-market-toolkit/commit/629c4e295146e2778d4b0659d296bb56882adb09))
+
+
+### Bug Fixes
+
+* **#299:** Pad get_history lookback for indicator computations ([#303](https://github.com/ai-workflow-space/stock-market-toolkit/issues/303)) ([fb7c207](https://github.com/ai-workflow-space/stock-market-toolkit/commit/fb7c20783f4fcac5e5408275c73e13647f23ad36))
+* 283: run nightly signal scan in-process instead of external cron ([#296](https://github.com/ai-workflow-space/stock-market-toolkit/issues/296)) ([2021f37](https://github.com/ai-workflow-space/stock-market-toolkit/commit/2021f377915692ccda4680d038e902d489352fc8))
+* **HistoryTable:** remove hardcoded 30-row cap ([#304](https://github.com/ai-workflow-space/stock-market-toolkit/issues/304)) ([6b01d6d](https://github.com/ai-workflow-space/stock-market-toolkit/commit/6b01d6d2aa51f8f7196f33cb2e88ca4eb8623027))
+* **SignalCard:** split header into two rows to prevent badge overflow ([#284](https://github.com/ai-workflow-space/stock-market-toolkit/issues/284)) ([07f68c6](https://github.com/ai-workflow-space/stock-market-toolkit/commit/07f68c6ae9307842cd829527a775cf1dd4687851))
+
 ## [0.16.0](https://github.com/ai-workflow-space/stock-market-toolkit/compare/v0.15.0...v0.16.0) (2026-07-05)
 
 
