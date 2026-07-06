@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.1](https://github.com/ckw1206/stock-market-toolkit/compare/v0.17.0...v0.17.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* remove icon prefixes from Screener & Portfolio page titles ([#308](https://github.com/ckw1206/stock-market-toolkit/issues/308)) ([c19a390](https://github.com/ckw1206/stock-market-toolkit/commit/c19a3904536625f9a390b8f535500588c8188a5b))
+
 ## [0.17.0](https://github.com/ai-workflow-space/stock-market-toolkit/compare/v0.16.0...v0.17.0) (2026-07-06)
 
 
