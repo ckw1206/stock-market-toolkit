@@ -221,6 +221,7 @@ export interface PaperPosition {
 
 export interface PaperPortfolioData {
   cash: number;
+  starting_cash: number;
   positions: PaperPosition[];
   equity: number;
   total_unrealized_pnl: number;
@@ -252,11 +253,27 @@ export async function getPaperHistory(): Promise<{ trades: PaperTradeRecord[] }>
 export async function postPaperTrade(
   symbol: string,
   side: "buy" | "sell",
-  qty: number
+  qty: number,
+  executedAt?: string | null
 ): Promise<{ symbol: string; side: string; qty: number; price: number; cash_after: number }> {
   const res = await axios.post(
     `${API}/api/paper/trade`,
-    { symbol, side, qty },
+    { symbol, side, qty, ...(executedAt ? { executed_at: executedAt } : {}) },
+    { headers: authHeaders() }
+  );
+  return res.data;
+}
+
+export async function deletePaperTrade(tradeId: number): Promise<void> {
+  await axios.delete(`${API}/api/paper/trade/${tradeId}`, { headers: authHeaders() });
+}
+
+export async function resetPaperPortfolio(
+  startingCash?: number
+): Promise<PaperPortfolioData> {
+  const res = await axios.post(
+    `${API}/api/paper/reset`,
+    startingCash != null ? { starting_cash: startingCash } : {},
     { headers: authHeaders() }
   );
   return res.data;

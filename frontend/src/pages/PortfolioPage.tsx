@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Wallet, TrendingUp, TrendingDown } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, X, RotateCcw } from "lucide-react";
 import {
   getPaperPortfolio,
   getPaperHistory,
   postPaperTrade,
+  deletePaperTrade,
+  resetPaperPortfolio,
   type PaperPortfolioData,
   type PaperTradeRecord,
 } from "@/api/stockApi";
@@ -15,6 +17,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -46,7 +56,12 @@ export default function PortfolioPage() {
     () => (searchParams.get("side") === "sell" ? "sell" : "buy"),
   );
   const [qty, setQty] = useState("1");
+  const [executedAt, setExecutedAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [undoingId, setUndoingId] = useState<number | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetCash, setResetCash] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -74,7 +89,8 @@ export default function PortfolioPage() {
     }
     setSubmitting(true);
     try {
-      const result = await postPaperTrade(symbol, side, qtyNum);
+      const iso = executedAt ? new Date(executedAt).toISOString() : undefined;
+      const result = await postPaperTrade(symbol, side, qtyNum, iso);
       toast.success(
         t(side === "buy" ? "portfolio.toast.bought" : "portfolio.toast.sold", {
           qty: result.qty,
@@ -82,6 +98,7 @@ export default function PortfolioPage() {
           price: result.price.toFixed(2),
         })
       );
+      setExecutedAt("");
       await refresh();
     } catch (err) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -91,11 +108,54 @@ export default function PortfolioPage() {
     }
   };
 
+  const undoTrade = async (id: number) => {
+    setUndoingId(id);
+    try {
+      await deletePaperTrade(id);
+      toast.success(t("portfolio.toast.undone"));
+      await refresh();
+    } catch (err) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail || t("portfolio.errors.undoFailed"));
+    } finally {
+      setUndoingId(null);
+    }
+  };
+
+  const submitReset = async () => {
+    const cashNum = Number(resetCash);
+    setResetting(true);
+    try {
+      await resetPaperPortfolio(resetCash && cashNum > 0 ? cashNum : undefined);
+      toast.success(t("portfolio.toast.reset"));
+      setResetOpen(false);
+      setResetCash("");
+      await refresh();
+    } catch (err) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail || t("portfolio.errors.resetFailed"));
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <div className="container mx-auto space-y-4 p-4">
       <div className="flex items-center gap-2">
         <Wallet className="size-5" />
         <h1 className="text-xl font-semibold">{t("portfolio.title")}</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={() => {
+            setResetCash(portfolio ? String(portfolio.starting_cash) : "");
+            setResetOpen(true);
+          }}
+        >
+          <RotateCcw className="mr-1 size-3" />
+          {t("portfolio.reset.button")}
+        </Button>
       </div>
 
       {loading && !portfolio ? (
@@ -164,6 +224,16 @@ export default function PortfolioPage() {
                   value={qty}
                   onChange={(e) => setQty(e.target.value)}
                   className="h-9 w-24 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">{t("portfolio.trade.executedAt")}</Label>
+                <Input
+                  type="datetime-local"
+                  value={executedAt}
+                  max={new Date().toISOString().slice(0, 16)}
+                  onChange={(e) => setExecutedAt(e.target.value)}
+                  className="h-9 w-48 text-xs"
                 />
               </div>
               <Button size="sm" onClick={submitTrade} disabled={submitting}>
@@ -236,7 +306,8 @@ export default function PortfolioPage() {
                         <th className="py-2 pr-2">{t("portfolio.trade.side")}</th>
                         <th className="py-2 pr-2">{t("portfolio.positions.qty")}</th>
                         <th className="py-2 pr-2">{t("common.fields.price")}</th>
-                        <th className="py-2">{t("portfolio.history.executedAt")}</th>
+                        <th className="py-2 pr-2">{t("portfolio.history.executedAt")}</th>
+                        <th className="py-2 text-right">{t("portfolio.history.actions")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -250,8 +321,20 @@ export default function PortfolioPage() {
                           </td>
                           <td className="py-2 pr-2 font-mono tabular-nums">{tr.qty}</td>
                           <td className="py-2 pr-2 font-mono tabular-nums">${fmtMoney(tr.price)}</td>
-                          <td className="py-2 text-xs text-muted-foreground">
+                          <td className="py-2 pr-2 text-xs text-muted-foreground">
                             {tr.executed_at ? new Date(tr.executed_at).toLocaleString() : "—"}
+                          </td>
+                          <td className="py-2 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => undoTrade(tr.id)}
+                              disabled={undoingId === tr.id}
+                              title={t("portfolio.history.undo")}
+                            >
+                              <X className="size-3" />
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -263,6 +346,34 @@ export default function PortfolioPage() {
           </Card>
         </>
       )}
+
+      <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("portfolio.reset.title")}</DialogTitle>
+            <DialogDescription>{t("portfolio.reset.description")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1">
+            <Label className="text-xs">{t("portfolio.reset.startingCashLabel")}</Label>
+            <Input
+              type="number"
+              min={1}
+              step={1000}
+              value={resetCash}
+              onChange={(e) => setResetCash(e.target.value)}
+              className="h-9 text-sm"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetOpen(false)} disabled={resetting}>
+              {t("portfolio.reset.cancel")}
+            </Button>
+            <Button variant="destructive" onClick={submitReset} disabled={resetting}>
+              {t("portfolio.reset.confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

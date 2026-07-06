@@ -1,6 +1,6 @@
 """Tests for the paper-trading portfolio service and /api/paper routes."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pandas as pd
@@ -26,6 +26,8 @@ from app.services.paper_trading import (
     get_or_create_portfolio,
     get_portfolio_view,
     get_trade_history,
+    reset_portfolio,
+    undo_trade,
 )
 
 
@@ -172,7 +174,13 @@ class TestGetPortfolioView:
     @pytest.mark.asyncio
     async def test_empty_portfolio(self, db_session):
         view = await get_portfolio_view(db_session, "u1")
-        assert view == {"cash": 100_000.0, "positions": [], "equity": 100_000.0, "total_unrealized_pnl": 0.0}
+        assert view == {
+            "cash": 100_000.0,
+            "starting_cash": 100_000.0,
+            "positions": [],
+            "equity": 100_000.0,
+            "total_unrealized_pnl": 0.0,
+        }
 
     @pytest.mark.asyncio
     async def test_open_position_marked_to_market(self, db_session):
@@ -274,3 +282,185 @@ class TestPaperRoutes:
         resp = await client.get("/api/paper/history")
         assert resp.status_code == 200
         assert len(resp.json()["trades"]) == 1
+
+
+# ---------------------------------------------------------------------------
+# Tests for feature 1: configurable starting_cash
+# ---------------------------------------------------------------------------
+
+class TestStartingCash:
+    @pytest.mark.asyncio
+    async def test_portfolio_created_with_default_starting_cash(self, db_session):
+        portfolio = await get_or_create_portfolio(db_session, "u1")
+        assert float(portfolio.cash) == 100_000.0
+        assert float(portfolio.starting_cash) == 100_000.0
+
+    @pytest.mark.asyncio
+    async def test_portfolio_created_with_custom_starting_cash(self, db_session):
+        portfolio = await get_or_create_portfolio(db_session, "u1", starting_cash=50_000.0)
+        assert float(portfolio.cash) == 50_000.0
+        assert float(portfolio.starting_cash) == 50_000.0
+
+    @pytest.mark.asyncio
+    async def test_custom_starting_cash_preserved_on_reuse(self, db_session):
+        await get_or_create_portfolio(db_session, "u1", starting_cash=25_000.0)
+        await db_session.commit()
+        portfolio = await get_or_create_portfolio(db_session, "u1", starting_cash=99_000.0)
+        assert float(portfolio.cash) == 25_000.0  # existing portfolio unchanged
+        assert float(portfolio.starting_cash) == 25_000.0
+
+    @pytest.mark.asyncio
+    async def test_post_portfolio_with_custom_starting_cash(self, client):
+        resp = await client.post("/api/paper/portfolio", json={"starting_cash": 75_000.0})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["cash"] == 75_000.0
+        assert data["equity"] == 75_000.0
+
+
+# ---------------------------------------------------------------------------
+# Tests for feature 2: backdated trades (executed_at)
+# ---------------------------------------------------------------------------
+
+class TestBackdatedTrades:
+    @pytest.mark.asyncio
+    async def test_execute_trade_with_past_timestamp(self, db_session):
+        past = datetime(2025, 1, 1, 12, 0, 0)
+        with patch("app.services.paper_trading.market_provider", spec=FallbackChain) as mp:
+            mp.get_history = _mock_quote(100.0)
+            result = await execute_trade(db_session, "u1", "AAPL", "buy", 10, executed_at=past)
+
+        assert result["symbol"] == "AAPL"
+        # Verify the trade was recorded with the backdated time
+        trades = await get_trade_history(db_session, "u1")
+        assert len(trades) == 1
+        assert trades[0]["executed_at"] is not None
+
+    @pytest.mark.asyncio
+    async def test_post_trade_with_executed_at_rejected_when_future(self, client):
+        future = datetime.utcnow() + timedelta(days=1)
+        resp = await client.post(
+            "/api/paper/trade",
+            json={"symbol": "AAPL", "side": "buy", "qty": 1, "executed_at": future.isoformat()},
+        )
+        assert resp.status_code == 400
+        assert "future" in resp.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_post_trade_with_valid_executed_at(self, client):
+        past = datetime(2025, 6, 1, 10, 0, 0)
+        with patch("app.services.paper_trading.market_provider", spec=FallbackChain) as mp:
+            mp.get_history = _mock_quote(100.0)
+            resp = await client.post(
+                "/api/paper/trade",
+                json={"symbol": "AAPL", "side": "buy", "qty": 1, "executed_at": past.isoformat()},
+            )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["symbol"] == "AAPL"
+        assert data["cash_after"] == 99_900.0
+
+
+# ---------------------------------------------------------------------------
+# Tests for feature 3: undo trade (DELETE /paper/trade/{id})
+# ---------------------------------------------------------------------------
+
+class TestUndoTrade:
+    @pytest.mark.asyncio
+    async def test_undo_last_trade_restores_cash_and_removes_position(self, db_session):
+        with patch("app.services.paper_trading.market_provider", spec=FallbackChain) as mp:
+            mp.get_history = _mock_quote(100.0)
+            await execute_trade(db_session, "u1", "AAPL", "buy", 10)
+
+        # Verify initial state: cash = 99_000, position AAPL qty=10
+        view1 = await get_portfolio_view(db_session, "u1")
+        assert view1["cash"] == 99_000.0
+
+        # Get the trade ID and undo it
+        trades = await get_trade_history(db_session, "u1")
+        trade_id = trades[0]["id"]
+
+        view2 = await undo_trade(db_session, "u1", trade_id)
+        assert view2["cash"] == 100_000.0
+        assert view2["positions"] == []
+
+    @pytest.mark.asyncio
+    async def test_undo_trade_not_found_returns_error(self, db_session):
+        with patch("app.services.paper_trading.market_provider", spec=FallbackChain) as mp:
+            mp.get_history = _mock_quote(100.0)
+            await execute_trade(db_session, "u1", "AAPL", "buy", 1)
+
+        with pytest.raises(ValueError, match="not found"):
+            await undo_trade(db_session, "u1", 9999)
+
+    @pytest.mark.asyncio
+    async def test_delete_trade_route(self, client):
+        with patch("app.services.paper_trading.market_provider", spec=FallbackChain) as mp:
+            mp.get_history = _mock_quote(50.0)
+            await client.post("/api/paper/trade", json={"symbol": "AAPL", "side": "buy", "qty": 2})
+
+        trades = (await client.get("/api/paper/history")).json()["trades"]
+        trade_id = trades[0]["id"]
+
+        resp = await client.delete(f"/api/paper/trade/{trade_id}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["cash"] == 100_000.0
+        assert data["positions"] == []
+
+    @pytest.mark.asyncio
+    async def test_delete_trade_route_404_for_unknown_id(self, client):
+        resp = await client.delete("/api/paper/trade/99999")
+        assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Tests for feature 4: reset portfolio (POST /paper/reset)
+# ---------------------------------------------------------------------------
+
+class TestResetPortfolio:
+    @pytest.mark.asyncio
+    async def test_reset_wipes_all_trades_and_restores_cash(self, db_session):
+        with patch("app.services.paper_trading.market_provider", spec=FallbackChain) as mp:
+            mp.get_history = _mock_quote(100.0)
+            await execute_trade(db_session, "u1", "AAPL", "buy", 10)
+            mp.get_history = _mock_quote(120.0)
+            await execute_trade(db_session, "u1", "MSFT", "buy", 5)
+
+        # Set custom starting_cash on portfolio
+        portfolio = await get_or_create_portfolio(db_session, "u1")
+        portfolio.starting_cash = 250_000.0
+        portfolio.cash = 250_000.0 - 10 * 100.0 - 5 * 120.0  # 230_000 - trades
+        await db_session.commit()
+
+        result = await reset_portfolio(db_session, "u1")
+
+        assert result["cash"] == 250_000.0
+        assert result["positions"] == []
+
+        # Verify all trades are gone
+        history = await get_trade_history(db_session, "u1")
+        assert len(history) == 0
+
+    @pytest.mark.asyncio
+    async def test_post_reset_route(self, client):
+        with patch("app.services.paper_trading.market_provider", spec=FallbackChain) as mp:
+            mp.get_history = _mock_quote(100.0)
+            await client.post("/api/paper/trade", json={"symbol": "AAPL", "side": "buy", "qty": 5})
+            mp.get_history = _mock_quote(150.0)
+            await client.post("/api/paper/trade", json={"symbol": "MSFT", "side": "buy", "qty": 3})
+
+        resp = await client.post("/api/paper/reset")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["cash"] == 100_000.0
+        assert data["positions"] == []
+
+    @pytest.mark.asyncio
+    async def test_reset_with_new_starting_cash(self, db_session):
+        result = await reset_portfolio(db_session, "u1", starting_cash=42_000.0)
+        assert result["cash"] == 42_000.0
+        assert result["starting_cash"] == 42_000.0
+        # New starting balance persists for subsequent default resets.
+        again = await reset_portfolio(db_session, "u1")
+        assert again["starting_cash"] == 42_000.0

@@ -65,7 +65,7 @@ from app.schemas.ingestion import (
     JobRunResponse,
     IngestStatusResponse,
 )
-from app.schemas.paper import PaperTradeRequest
+from app.schemas.paper import PaperTradeRequest, PaperPortfolioCreate
 
 __all__ = [
     # auth
@@ -93,5 +93,5 @@ __all__ = [
     # ingestion
     "JobRunResponse", "IngestStatusResponse",
     # paper trading
-    "PaperTradeRequest",
+    "PaperTradeRequest", "PaperPortfolioCreate",
 ]

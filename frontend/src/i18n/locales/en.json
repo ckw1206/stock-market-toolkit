@@ -681,6 +681,7 @@
   "portfolio": {
     "title": "Paper Trading Portfolio",
     "cash": "Cash",
+    "startingCash": "Starting cash",
     "equity": "Equity",
     "unrealizedPnl": "Unrealized P&L",
     "trade": {
@@ -689,7 +690,8 @@
       "side": "Side",
       "buy": "Buy",
       "sell": "Sell",
-      "qty": "Qty"
+      "qty": "Qty",
+      "executedAt": "Backdate (optional)"
     },
     "positions": {
       "title": "Open Positions",
@@ -704,16 +706,30 @@
     "history": {
       "title": "Trade History",
       "empty": "No trades yet",
-      "executedAt": "Executed"
+      "executedAt": "Executed",
+      "actions": "Actions",
+      "undo": "Undo"
+    },
+    "reset": {
+      "button": "Reset",
+      "title": "Reset portfolio",
+      "description": "This deletes all trades and resets cash to the starting balance. This cannot be undone.",
+      "startingCashLabel": "Starting cash",
+      "confirm": "Reset portfolio",
+      "cancel": "Cancel"
     },
     "toast": {
       "bought": "Bought {{qty}} {{symbol}} @ ${{price}}",
-      "sold": "Sold {{qty}} {{symbol}} @ ${{price}}"
+      "sold": "Sold {{qty}} {{symbol}} @ ${{price}}",
+      "undone": "Trade removed",
+      "reset": "Portfolio reset"
     },
     "errors": {
       "loadFailed": "Failed to load portfolio",
       "invalidTrade": "Enter a symbol and a positive quantity",
-      "tradeFailed": "Trade failed"
+      "tradeFailed": "Trade failed",
+      "undoFailed": "Failed to remove trade",
+      "resetFailed": "Failed to reset portfolio"
     }
   }
 }
