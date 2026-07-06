@@ -15,7 +15,6 @@ import DashboardPage from "./pages/DashboardPage";
 import SignalsPage from "./pages/SignalsPage";
 import ScreenerPage from "./pages/ScreenerPage";
 import PortfolioPage from "./pages/PortfolioPage";
-import WatchlistPage from "./pages/WatchlistPage";
 import ComparePage from "./pages/ComparePage";
 import AlertsPage from "./pages/AlertsPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -56,7 +55,6 @@ export default function App() {
               <Route path="/signals" element={<Protected><SignalsPage /></Protected>} />
               <Route path="/screener" element={<Protected><ScreenerPage /></Protected>} />
               <Route path="/portfolio" element={<Protected><PortfolioPage /></Protected>} />
-              <Route path="/watchlist" element={<Protected><WatchlistPage /></Protected>} />
               <Route path="/compare" element={<Protected><ComparePage /></Protected>} />
               <Route path="/alerts" element={<Protected><AlertsPage /></Protected>} />
               <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
