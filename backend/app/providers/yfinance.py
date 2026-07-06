@@ -109,7 +109,14 @@ class YFinanceMarketDataProvider:
 
         end = pd.Timestamp.now("UTC")
         start = end - pd.Timedelta(days=period_len + lookback_extra)
-        return ticker.history(start=start.isoformat(), end=end.isoformat(), interval=interval, auto_adjust=True)
+        # yfinance parses start/end with strptime(..., "%Y-%m-%d") and rejects
+        # anything with a time/offset component, so pass date-only strings.
+        return ticker.history(
+            start=start.strftime("%Y-%m-%d"),
+            end=end.strftime("%Y-%m-%d"),
+            interval=interval,
+            auto_adjust=True,
+        )
 
     async def get_info(self, symbol: str) -> dict:
         """Cached async info fetch."""

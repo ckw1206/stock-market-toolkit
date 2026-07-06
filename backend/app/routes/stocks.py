@@ -107,7 +107,12 @@ async def get_indicators(
     # (12/26/9) which are fully contained within 35 extra bars; EMA uses the same
     # window as its corresponding SMA.  BBands and ATR also use length-20/14
     # windows.  The widest window among all computed indicators is SMA200=200.
-    max_indicator_lookback = 200
+    #
+    # Only pad daily-interval requests: lookback_extra is expressed in calendar
+    # days, and Yahoo caps intraday (5m/15m) data at ~60 days, so padding an
+    # intraday period by 200 days returns an empty frame. Intraday periods
+    # (1d/5d) already return enough bars for the short-window indicators.
+    max_indicator_lookback = 200 if interval == "1d" else 0
 
     try:
         result = await market_provider.get_history(
@@ -190,33 +195,37 @@ async def get_indicators(
     )
 
     # Trim padded leading rows so the response covers exactly the display period.
-    # The display period starts at the end of the DataFrame; the first
-    # (n_display - n_original) rows are lookback padding and must be removed.
-    n_original = _estimate_display_rows(period, len(df))
-    trim = n - n_original
-    if trim > 0:
-        raw.timestamp = raw.timestamp[trim:]
-        raw.sma20 = raw.sma20[trim:]
-        raw.sma50 = raw.sma50[trim:]
-        raw.sma200 = raw.sma200[trim:]
-        raw.ema12 = raw.ema12[trim:]
-        raw.ema26 = raw.ema26[trim:]
-        raw.rsi = raw.rsi[trim:]
-        raw.macd = raw.macd[trim:]
-        raw.macd_signal = raw.macd_signal[trim:]
-        raw.macd_hist = raw.macd_hist[trim:]
-        raw.bb_upper = raw.bb_upper[trim:]
-        raw.bb_middle = raw.bb_middle[trim:]
-        raw.bb_lower = raw.bb_lower[trim:]
-        raw.atr = raw.atr[trim:]
+    # Only applies when daily padding was requested; _APPROX_DISPLAY_BARS is a
+    # daily bar-count table, so trimming an unpadded intraday frame (where
+    # len(df) far exceeds those counts) would wrongly discard valid bars.
+    if max_indicator_lookback > 0:
+        # The display period starts at the end of the DataFrame; the first
+        # (n - n_original) rows are lookback padding and must be removed.
+        n_original = _estimate_display_rows(period, len(df))
+        trim = n - n_original
+        if trim > 0:
+            raw.timestamp = raw.timestamp[trim:]
+            raw.sma20 = raw.sma20[trim:]
+            raw.sma50 = raw.sma50[trim:]
+            raw.sma200 = raw.sma200[trim:]
+            raw.ema12 = raw.ema12[trim:]
+            raw.ema26 = raw.ema26[trim:]
+            raw.rsi = raw.rsi[trim:]
+            raw.macd = raw.macd[trim:]
+            raw.macd_signal = raw.macd_signal[trim:]
+            raw.macd_hist = raw.macd_hist[trim:]
+            raw.bb_upper = raw.bb_upper[trim:]
+            raw.bb_middle = raw.bb_middle[trim:]
+            raw.bb_lower = raw.bb_lower[trim:]
+            raw.atr = raw.atr[trim:]
 
-    # Assert post-trim length matches expected display rows.
-    # This guards against trim logic silently shrinking the response when
-    # the padded DataFrame is shorter than expected (thin-history symbols).
-    assert len(raw.timestamp) == n_original, (
-        f"Post-trim timestamp count {len(raw.timestamp)} != expected {n_original}; "
-        f"check _APPROX_DISPLAY_BARS for period={period}"
-    )
+        # Assert post-trim length matches expected display rows.
+        # This guards against trim logic silently shrinking the response when
+        # the padded DataFrame is shorter than expected (thin-history symbols).
+        assert len(raw.timestamp) == n_original, (
+            f"Post-trim timestamp count {len(raw.timestamp)} != expected {n_original}; "
+            f"check _APPROX_DISPLAY_BARS for period={period}"
+        )
 
     return raw
 

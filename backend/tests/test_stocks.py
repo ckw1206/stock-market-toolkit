@@ -280,6 +280,12 @@ def test_yfinance_provider_history_with_extra_fetches_longer_range():
     _, kwargs = mock_ticker.history.call_args
     assert "start" in kwargs and "end" in kwargs
     assert kwargs.get("auto_adjust", False) is True
+    # Regression: yfinance parses start/end with strptime(..., "%Y-%m-%d") and
+    # rejects any time/offset component. A full ISO timestamp raised ValueError
+    # at request time, surfacing as a 503 on the dashboard. Assert date-only.
+    from datetime import datetime as _dt
+    _dt.strptime(kwargs["start"], "%Y-%m-%d")
+    _dt.strptime(kwargs["end"], "%Y-%m-%d")
 
 
 def test_yfinance_provider_history_without_extra_uses_period():
@@ -298,6 +304,40 @@ def test_yfinance_provider_history_without_extra_uses_period():
     mock_ticker.history.assert_called_once()
     _, kwargs = mock_ticker.history.call_args
     assert "period" in kwargs  # Uses period, not start/end
+
+
+def test_indicators_intraday_period_skips_lookback_padding(client):
+    """Intraday periods (1d/5d) must NOT request day-based padding.
+
+    Regression: Yahoo caps intraday (5m/15m) data at ~60 days, so padding by
+    200 calendar days returned an empty frame -> 404. Intraday requests must
+    pass lookback_extra=0 and the response must not be trimmed against the
+    daily _APPROX_DISPLAY_BARS table.
+    """
+    from app.providers.chain import FallbackChain, TaggedValue
+    import pandas as pd
+
+    # ~78 5-minute bars in a single trading day; far more than SMA20 needs.
+    n = 78
+    close = [100.0 + i * 0.1 for i in range(n)]
+    df = pd.DataFrame(
+        {"Open": close, "High": close, "Low": close, "Close": close, "Volume": [1000] * n},
+        index=pd.date_range("2024-01-02 09:30", periods=n, freq="5min"),
+    )
+
+    with patch("app.routes.stocks.market_provider", spec=FallbackChain) as mock_provider:
+        mock_result = MagicMock(spec=TaggedValue)
+        mock_result.value = df
+        mock_result.source = "yfinance"
+        mock_result.as_of = datetime.utcnow()
+        mock_provider.get_history = AsyncMock(return_value=mock_result)
+
+        response = client.get("/api/stock/AAPL/indicators?period=1d")
+
+    assert response.status_code == 200
+    assert mock_provider.get_history.call_args.kwargs.get("lookback_extra") == 0
+    # No trimming: all intraday bars returned (not shrunk to _APPROX_DISPLAY_BARS["1d"]=1)
+    assert len(response.json()["timestamp"]) == n
 
 
 def test_estimate_display_rows_returns_min_of_expected_and_total():
