@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { TrendingUp, TrendingDown, Minus, X, LineChart, BarChart3, Wallet } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Signal, SignalDirection, SignalType } from "@/types";
@@ -5,17 +6,22 @@ import { fmt } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface SignalCardProps {
   signal: Signal;
   /** When true, analysis data is not available for this tracked symbol. */
   pending?: boolean;
+  note?: string;
+  tags?: string[];
   onDismiss?: (id: string) => void;
   onRemoveTicker?: (symbol: string) => void;
   onView?: (symbol: string) => void;
   onCompare?: (symbol: string) => void;
   onPaperTrade?: (symbol: string) => void;
+  onSaveNote?: (note: string) => void;
+  onSaveTags?: (tags: string[]) => void;
 }
 
 const DIRECTION_ICON = { bullish: TrendingUp, bearish: TrendingDown, neutral: Minus };
@@ -54,14 +60,96 @@ function StrengthBar({ strength }: { strength: number }) {
   );
 }
 
+function NoteField({
+  note,
+  onSave,
+}: {
+  note: string;
+  onSave: (note: string) => void;
+}) {
+  const [value, setValue] = useState(note ?? "");
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => {
+        if (value !== (note ?? "")) onSave(value);
+      }}
+      placeholder="Add a note..."
+      rows={1}
+      className="w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm text-muted-foreground placeholder:text-muted-foreground/60 hover:border-input focus:border-input focus:outline-none"
+    />
+  );
+}
+
+function TagEditor({
+  tags,
+  onSave,
+}: {
+  tags: string[];
+  onSave: (tags: string[]) => void;
+}) {
+  const [input, setInput] = useState("");
+
+  const addTag = () => {
+    const next = input
+      .split(",")
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    if (next.length === 0) return;
+    const merged = Array.from(new Set([...tags, ...next]));
+    onSave(merged);
+    setInput("");
+  };
+
+  const removeTag = (tag: string) => {
+    onSave(tags.filter((t) => t !== tag));
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {tags.map((tag) => (
+        <Badge key={tag} variant="secondary" className="gap-1 text-xs">
+          {tag}
+          <button
+            type="button"
+            onClick={() => removeTag(tag)}
+            className="cursor-pointer text-muted-foreground hover:text-destructive"
+            aria-label={`Remove tag ${tag}`}
+          >
+            <X className="size-3" />
+          </button>
+        </Badge>
+      ))}
+      <Input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            addTag();
+          }
+        }}
+        onBlur={addTag}
+        placeholder="+ tag"
+        className="h-6 w-20 border-none bg-transparent px-1 text-xs shadow-none focus-visible:ring-1"
+      />
+    </div>
+  );
+}
+
 export default function SignalCard({
   signal,
   pending = false,
+  note,
+  tags = [],
   onDismiss,
   onRemoveTicker,
   onView,
   onCompare,
   onPaperTrade,
+  onSaveNote,
+  onSaveTags,
 }: SignalCardProps) {
   const { t } = useTranslation();
   const Icon = DIRECTION_ICON[signal.direction];
@@ -230,6 +318,24 @@ export default function SignalCard({
 
             <p className="text-xs text-muted-foreground">{formatTime(signal.timestamp)}</p>
           </>
+        )}
+
+        {/* Per-symbol notes and tags — rendered below the signal content for all cards */}
+        {(onSaveNote || onSaveTags) && (
+          <div className="mt-3 flex flex-col gap-1.5 border-t border-border pt-3">
+            {onSaveNote && (
+              <NoteField
+                note={note ?? ""}
+                onSave={onSaveNote}
+              />
+            )}
+            {onSaveTags && (
+              <TagEditor
+                tags={tags}
+                onSave={onSaveTags}
+              />
+            )}
+          </div>
         )}
       </CardContent>
     </Card>

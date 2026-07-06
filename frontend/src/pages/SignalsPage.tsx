@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Activity, Plus, Loader2, X } from "lucide-react";
+import { Activity, Plus, Loader2, X, ArrowUpDown } from "lucide-react";
 import SignalCard from "@/components/SignalCard";
 import StatCard from "@/components/common/StatCard";
 import SymbolSearch from "@/components/common/SymbolSearch";
@@ -9,6 +9,7 @@ import { useWatchlist } from "@/hooks/useWatchlist";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,9 @@ type AnalysisResponse = {
   volume_spike?: boolean;
   breakout?: boolean;
 };
+
+const ALL_TAGS = "__all__";
+type SortKey = "added" | "symbol";
 
 function mapAnalysisToSignal(data: AnalysisResponse, symbolOverride?: string): Signal {
   const sym = symbolOverride ?? data.symbol ?? "";
@@ -103,6 +107,7 @@ export default function SignalsPage() {
     loading: watchlistLoading,
     error: watchlistError,
     refresh: refreshWatchlist,
+    update,
   } = useWatchlist();
   const [signals, setSignals] = useState<Signal[]>([]);
   const [signalErrors, setSignalErrors] = useState<Record<string, string>>({});
@@ -113,6 +118,14 @@ export default function SignalsPage() {
   const [selectedSymbol, setSelectedSymbol] = useState("");
   const [tickerError, setTickerError] = useState("");
   const [addingTicker, setAddingTicker] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("added");
+  const [activeTag, setActiveTag] = useState<string>(ALL_TAGS);
+
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    items.forEach((i) => i.tags.forEach((t) => s.add(t)));
+    return Array.from(s).sort();
+  }, [items]);
 
   const fetchSignals = useCallback(async () => {
       setLoading(true);
@@ -266,6 +279,14 @@ export default function SignalsPage() {
     toast(t("signals.toast.removed", { symbol }));
   }, [removeFromWatchlist, t]);
 
+  const handleSaveNote = useCallback(async (symbol: string, note: string) => {
+    try { await update(symbol, { note }); } catch { /* ignore */ }
+  }, [update]);
+
+  const handleSaveTags = useCallback(async (symbol: string, tags: string[]) => {
+    try { await update(symbol, { tags }); } catch { /* ignore */ }
+  }, [update]);
+
   const handleView = useCallback((symbol: string) => navigate(`/?symbol=${symbol}`), [navigate]);
   const handleCompare = useCallback(
     (symbol: string) => navigate(`/compare?symbols=${symbol}`),
@@ -282,16 +303,29 @@ export default function SignalsPage() {
     () => new Map(signals.map((s) => [s.symbol, s])),
     [signals],
   );
-  const trackedSignals = useMemo(
-    () =>
-      items.map((item) => ({
-        signal:
-          signalBySymbol.get(item.symbol) ??
-          pendingSignal(item.symbol, signalErrors[item.symbol] ?? t("signals.noSignalData")),
-        pending: !signalBySymbol.has(item.symbol),
-      })),
-    [items, signalBySymbol, signalErrors, t],
-  );
+  const trackedSignals = useMemo(() => {
+    const base = items.map((item) => ({
+      item,
+      signal:
+        signalBySymbol.get(item.symbol) ??
+        pendingSignal(item.symbol, signalErrors[item.symbol] ?? t("signals.noSignalData")),
+      pending: !signalBySymbol.has(item.symbol),
+    }));
+    const filtered =
+      activeTag === ALL_TAGS
+        ? base
+        : base.filter(({ item }) => item.tags.includes(activeTag));
+    const sorted = [...filtered];
+    if (sortKey === "symbol") {
+      sorted.sort((a, b) => a.item.symbol.localeCompare(b.item.symbol));
+    } else {
+      sorted.sort(
+        (a, b) =>
+          new Date(b.item.created_at).getTime() - new Date(a.item.created_at).getTime(),
+      );
+    }
+    return sorted;
+  }, [items, signalBySymbol, signalErrors, t, activeTag, sortKey]);
 
   const bullish = signals.filter((s) => s.direction === "bullish");
   const bearish = signals.filter((s) => s.direction === "bearish");
@@ -307,6 +341,14 @@ export default function SignalsPage() {
           <p className="text-sm text-muted-foreground">{t("signals.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSortKey((k) => (k === "added" ? "symbol" : "added"))}
+          >
+            <ArrowUpDown className="mr-1 size-3.5" />
+            {sortKey === "added" ? "Recently added" : "Symbol A-Z"}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => { refreshWatchlist(); fetchSignals(); }} disabled={watchlistLoading}>
             {watchlistLoading ? <Loader2 className="mr-1 size-4 animate-spin" /> : null}
             {t("signals.refresh")}
@@ -400,19 +442,47 @@ export default function SignalsPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {trackedSignals.map(({ signal, pending }) => (
-                <SignalCard
-                  key={signal.symbol}
-                  signal={signal}
-                  pending={pending}
-                  onRemoveTicker={handleRemoveTicker}
-                  onView={handleView}
-                  onCompare={handleCompare}
-                  onPaperTrade={handlePaperTrade}
-                />
-              ))}
-            </div>
+            <>
+              {allTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge
+                    variant={activeTag === ALL_TAGS ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => setActiveTag(ALL_TAGS)}
+                  >
+                    All
+                  </Badge>
+                  {allTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant={activeTag === tag ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => setActiveTag(tag)}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {trackedSignals.map(({ item, signal, pending }) => (
+                  <SignalCard
+                    key={signal.symbol}
+                    signal={signal}
+                    pending={pending}
+                    note={item.note ?? undefined}
+                    tags={item.tags}
+                    onRemoveTicker={handleRemoveTicker}
+                    onView={handleView}
+                    onCompare={handleCompare}
+                    onPaperTrade={handlePaperTrade}
+                    onSaveNote={(note) => handleSaveNote(item.symbol, note)}
+                    onSaveTags={(tags) => handleSaveTags(item.symbol, tags)}
+                  />
+                ))}
+              </div>
+            </>
           )}
 
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
