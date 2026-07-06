@@ -1,7 +1,7 @@
 """add_starting_cash_to_paper_portfolios
 
 Revision ID: fa7b8c9d0e1f
-Revises: f4a5b6c7d8e9
+Revises: d2e3f4a5b6c7
 Create Date: 2026-07-05 21:00:00.000000
 
 """
@@ -14,7 +14,7 @@ from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision: str = "fa7b8c9d0e1f"
-down_revision: Union[str, None] = "f4a5b6c7d8e9"
+down_revision: Union[str, None] = "d2e3f4a5b6c7"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
