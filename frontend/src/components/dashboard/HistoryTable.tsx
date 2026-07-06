@@ -3,10 +3,11 @@ import type { StockData } from "@/types";
 import { fmt, volFmt } from "@/lib/format";
 import ChartCard from "@/components/common/ChartCard";
 
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const CUTOFF = Date.now() - THIRTY_DAYS_MS;
+
 export default function HistoryTable({ stock }: { stock: StockData }) {
   const { t } = useTranslation();
-  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-  const cutoff = Date.now() - THIRTY_DAYS_MS;
   const rows = stock.close
     .map((_, i) => ({
       ts: stock.timestamp[i],
@@ -17,7 +18,7 @@ export default function HistoryTable({ stock }: { stock: StockData }) {
       close: stock.close[i],
       volume: stock.volume[i],
     }))
-    .filter((d) => Number(d.ts) >= cutoff)
+    .filter((d) => Number(d.ts) >= CUTOFF)
     .reverse();
 
   return (
