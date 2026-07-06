@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Sequence
 
 import pandas as pd
@@ -91,7 +91,7 @@ class FallbackChain:
                     log.warning("%s returned empty DataFrame for %s", name, symbol)
                     continue
                 cb.record_success()
-                return TaggedValue(df, name, datetime.utcnow())
+                return TaggedValue(df, name, datetime.now(timezone.utc))
             except Exception as exc:
                 cb.record_failure()
                 log.error("Provider %s failed for %s: %s", name, symbol, exc)
@@ -119,7 +119,7 @@ class FallbackChain:
                     cb.record_failure()
                     continue
                 cb.record_success()
-                return TaggedValue(info, name, datetime.utcnow())
+                return TaggedValue(info, name, datetime.now(timezone.utc))
             except Exception as exc:
                 cb.record_failure()
                 log.error("Provider %s get_info failed for %s: %s", name, symbol, exc)

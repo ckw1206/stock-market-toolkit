@@ -107,7 +107,7 @@ class YFinanceMarketDataProvider:
             "max": 36500,
         }.get(period, 30)
 
-        end = pd.Timestamp.utcnow()
+        end = pd.Timestamp.now("UTC")
         start = end - pd.Timedelta(days=period_len + lookback_extra)
         return ticker.history(start=start.isoformat(), end=end.isoformat(), interval=interval, auto_adjust=True)
 

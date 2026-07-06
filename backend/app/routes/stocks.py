@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.models import User
@@ -81,7 +81,7 @@ async def get_stock(
     return StockDataResponse(
         symbol=symbol.upper(),
         period=period,
-        cached_at=datetime.utcnow().isoformat(),
+        cached_at=datetime.now(timezone.utc).isoformat(),
         source=result.source,
         as_of=result.as_of,
         timestamp=df.index.strftime("%Y-%m-%dT%H:%M:%S").tolist(),
@@ -160,7 +160,7 @@ async def get_indicators(
     raw = IndicatorsResponse(
         symbol=symbol.upper(),
         period=period,
-        cached_at=datetime.utcnow().isoformat(),
+        cached_at=datetime.now(timezone.utc).isoformat(),
         timestamp=df.index.strftime("%Y-%m-%dT%H:%M:%S").tolist(),
         sma20=_clean_list(_safe_ta_series(ta.sma, close, length=20)),
         sma50=_clean_list(
@@ -194,7 +194,7 @@ async def get_indicators(
     # (n_display - n_original) rows are lookback padding and must be removed.
     n_original = _estimate_display_rows(period, len(df))
     trim = n - n_original
-    if trim > 0 and n_original >= 0:
+    if trim > 0:
         raw.timestamp = raw.timestamp[trim:]
         raw.sma20 = raw.sma20[trim:]
         raw.sma50 = raw.sma50[trim:]
@@ -209,6 +209,14 @@ async def get_indicators(
         raw.bb_middle = raw.bb_middle[trim:]
         raw.bb_lower = raw.bb_lower[trim:]
         raw.atr = raw.atr[trim:]
+
+    # Assert post-trim length matches expected display rows.
+    # This guards against trim logic silently shrinking the response when
+    # the padded DataFrame is shorter than expected (thin-history symbols).
+    assert len(raw.timestamp) == n_original, (
+        f"Post-trim timestamp count {len(raw.timestamp)} != expected {n_original}; "
+        f"check _APPROX_DISPLAY_BARS for period={period}"
+    )
 
     return raw
 

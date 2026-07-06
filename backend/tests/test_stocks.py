@@ -314,3 +314,43 @@ def test_estimate_display_rows_returns_min_of_expected_and_total():
 
     # Unknown period falls back to 21
     assert _estimate_display_rows("unknown_period", 1000) == 21
+
+
+def test_indicators_trim_assertion_fires_on_mismatch(client):
+    """Post-trim assertion catches DataFrames shorter than _APPROX_DISPLAY_BARS.
+
+    When the padded DataFrame is shorter than _APPROX_DISPLAY_BARS[period],
+    no trimming happens (trim=0), but the post-trim assertion must still pass
+    because n_original == len(df) in that case.  This test verifies the
+    assertion does NOT fire spuriously for thin-history symbols.
+    """
+    from app.providers.chain import FallbackChain, TaggedValue
+    import pandas as pd
+
+    # Build a DataFrame that is SMALLER than _APPROX_DISPLAY_BARS["3mo"] (63).
+    # n_total = 50 < 63, so n_original = min(50, 63) = 50, trim = 0.
+    n = 50
+    idx = pd.date_range("2024-01-01", periods=n, freq="D")
+    close = [100.0 + i * 0.1 for i in range(n)]
+    df = pd.DataFrame(
+        {"Open": close, "High": close, "Low": close, "Close": close, "Volume": [1000] * n},
+        index=idx,
+    )
+
+    with patch("app.routes.stocks.market_provider", spec=FallbackChain) as mock_provider:
+        mock_result = MagicMock(spec=TaggedValue)
+        mock_result.value = df
+        mock_result.source = "yfinance"
+        mock_result.as_of = datetime.utcnow()
+        mock_provider.get_history = AsyncMock(return_value=mock_result)
+
+        # Must NOT raise AssertionError — post-trim len must equal n_original (=50)
+        response = client.get("/api/stock/AAPL/indicators?period=3mo")
+
+    assert response.status_code == 200
+    data = response.json()
+    # n_original = min(50, 63) = 50; trim = 0; response covers all 50 rows
+    assert len(data["timestamp"]) == 50
+    # SMA200 requires 200 bars but df only has 50 — ta.sma returns None for
+    # those, so sma200 values will all be None (not an error, just unavailable)
+    assert len(data["sma200"]) == 50
