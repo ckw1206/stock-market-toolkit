@@ -59,15 +59,64 @@ class YFinanceMarketDataProvider:
         return ticker.info or {}
 
     async def get_history(
-        self, symbol: str, period: str, interval: str
+        self, symbol: str, period: str, interval: str, lookback_extra: int = 0
     ) -> pd.DataFrame:
-        """Cached async history fetch."""
-        key = cache_key("ohlcv", symbol, period, interval)
+        """Cached async history fetch.
+
+        Parameters
+        ----------
+        lookback_extra:
+            When > 0, fetch ``lookback_extra`` additional calendar days of
+            lookback beyond the requested ``period`` so callers can compute
+            rolling indicators that need historical warm-up. The returned
+            DataFrame contains the padded rows; callers must trim them before
+            serialising the response.
+        """
+        key_extra = f":le{lookback_extra}" if lookback_extra else ""
 
         async def loader() -> pd.DataFrame:
-            return await asyncio.to_thread(self.history, symbol, period, interval)
+            df = await asyncio.to_thread(
+                self._history_with_extra, symbol, period, interval, lookback_extra
+            )
+            return df
 
+        key = cache_key("ohlcv", symbol, period, interval) + key_extra
         return await cached(key, OHLCV_TTL, loader)
+
+    def _history_with_extra(
+        self, symbol: str, period: str, interval: str, lookback_extra: int
+    ) -> pd.DataFrame:
+        """Fetch history, optionally extending the start date by lookback_extra days."""
+        ticker = yf.Ticker(symbol.upper())
+        if lookback_extra <= 0:
+            return ticker.history(period=period, interval=interval, auto_adjust=True)
+
+        # Compute a start date by going back lookback_extra calendar days
+        # from "now" and also accounting for the requested period.
+        # period_len maps the period string to an approximate duration in days.
+        period_len = {
+            "1d": 1,
+            "5d": 5,
+            "1w": 7,
+            "1mo": 30,
+            "3mo": 90,
+            "6mo": 180,
+            "1y": 365,
+            "2y": 730,
+            "5y": 1825,
+            "max": 36500,
+        }.get(period, 30)
+
+        end = pd.Timestamp.now("UTC")
+        start = end - pd.Timedelta(days=period_len + lookback_extra)
+        # yfinance parses start/end with strptime(..., "%Y-%m-%d") and rejects
+        # anything with a time/offset component, so pass date-only strings.
+        return ticker.history(
+            start=start.strftime("%Y-%m-%d"),
+            end=end.strftime("%Y-%m-%d"),
+            interval=interval,
+            auto_adjust=True,
+        )
 
     async def get_info(self, symbol: str) -> dict:
         """Cached async info fetch."""

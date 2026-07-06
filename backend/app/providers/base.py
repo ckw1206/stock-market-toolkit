@@ -17,9 +17,19 @@ class MarketDataProvider(Protocol):
         ...
 
     async def get_history(
-        self, symbol: str, period: str, interval: str
+        self, symbol: str, period: str, interval: str, lookback_extra: int = 0
     ) -> pd.DataFrame:
-        """Return cached OHLCV DataFrame. Fallback: calls history()."""
+        """Return cached OHLCV DataFrame. Fallback: calls history().
+
+        Parameters
+        ----------
+        lookback_extra:
+            Request *extra* rows of lookback history beyond the display period.
+            The returned DataFrame will contain ``lookback_extra`` additional
+            rows prepended to the display period. Callers are responsible for
+            trimming those rows before returning data to the client.
+            Ignored when 0 (the default).
+        """
         ...
 
     async def get_info(self, symbol: str) -> dict:
