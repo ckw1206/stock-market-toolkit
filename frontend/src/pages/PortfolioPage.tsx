@@ -229,11 +229,11 @@ export default function PortfolioPage() {
               <div className="space-y-1">
                 <Label className="text-xs">{t("portfolio.trade.executedAt")}</Label>
                 <Input
-                  type="datetime-local"
+                  type="date"
                   value={executedAt}
-                  max={new Date().toISOString().slice(0, 16)}
+                  max={new Date().toISOString().slice(0, 10)}
                   onChange={(e) => setExecutedAt(e.target.value)}
-                  className="h-9 w-48 text-xs"
+                  className="h-9 w-40 text-xs"
                 />
               </div>
               <Button size="sm" onClick={submitTrade} disabled={submitting}>
