@@ -3,6 +3,9 @@ import type { StockData } from "@/types";
 import { fmt, volFmt } from "@/lib/format";
 import ChartCard from "@/components/common/ChartCard";
 
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const CUTOFF = Date.now() - THIRTY_DAYS_MS;
+
 export default function HistoryTable({ stock }: { stock: StockData }) {
   const { t } = useTranslation();
   const rows = stock.close
@@ -15,8 +18,8 @@ export default function HistoryTable({ stock }: { stock: StockData }) {
       close: stock.close[i],
       volume: stock.volume[i],
     }))
-    .reverse()
-    .slice(0, 30);
+    .filter((d) => new Date(d.ts).getTime() >= CUTOFF)
+    .reverse();
 
   return (
     <ChartCard title={t("common.cards.historicalData")} subtitle={t("common.cards.historicalDataSubtitle", { symbol: stock.symbol, count: rows.length })} bodyClassName="px-0">
