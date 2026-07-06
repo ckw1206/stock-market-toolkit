@@ -89,6 +89,8 @@ def setup_logging() -> None:
     root_logger = logging.getLogger()
     root_logger.addHandler(file_handler)
     root_logger.setLevel(getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO))
+    # yfinance logs expected 404s (ETFs w/o fundamentals) at ERROR; not our failures
+    logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
 
 @asynccontextmanager
