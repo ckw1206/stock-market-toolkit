@@ -337,6 +337,33 @@ class TestBackdatedTrades:
         assert trades[0]["executed_at"] is not None
 
     @pytest.mark.asyncio
+    async def test_backdated_buy_uses_historical_close_for_pnl(self, db_session):
+        # History: 100 on the backdate, 150 today. Backdated buy must fill at
+        # 100 (not the latest 150), so unrealized P&L reflects the 50/sh gain.
+        def _history(symbol, period, interval):
+            df = pd.DataFrame(
+                {"Open": [100, 150], "High": [100, 150], "Low": [100, 150],
+                 "Close": [100.0, 150.0], "Volume": [1_000_000, 1_000_000]},
+                index=pd.to_datetime(["2025-06-01", "2026-07-01"]),
+            )
+            return TaggedValue(df, "yfinance", datetime.utcnow())
+
+        with patch("app.services.paper_trading.market_provider", spec=FallbackChain) as mp:
+            mp.get_history = AsyncMock(side_effect=lambda s, period, interval, **k: _history(s, period, interval))
+            result = await execute_trade(
+                db_session, "u1", "AAPL", "buy", 2, executed_at=datetime(2025, 6, 1, 12, 0, 0)
+            )
+            assert result["price"] == 100.0  # historical close, not the latest 150
+
+            view = await get_portfolio_view(db_session, "u1")
+
+        pos = view["positions"][0]
+        assert pos["avg_cost"] == 100.0
+        assert pos["last_price"] == 150.0
+        assert pos["unrealized_pnl"] == 100.0  # (150 - 100) * 2
+        assert view["total_unrealized_pnl"] == 100.0
+
+    @pytest.mark.asyncio
     async def test_post_trade_with_executed_at_rejected_when_future(self, client):
         future = datetime.utcnow() + timedelta(days=1)
         resp = await client.post(

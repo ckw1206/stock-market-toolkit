@@ -90,6 +90,36 @@ async def get_latest_price(symbol: str) -> float:
     return float(df["Close"].iloc[-1])
 
 
+# Shortest period whose window covers a given lookback, so a backdated trade
+# fetches enough history to reach its date without pulling "max" every time.
+_PERIOD_SPANS = (("1mo", 31), ("3mo", 93), ("6mo", 186), ("1y", 372), ("2y", 744), ("5y", 1860))
+
+
+async def get_price_asof(symbol: str, when: datetime) -> float:
+    """Close on the last trading day on or before ``when``.
+
+    Backdated trades must be priced at their historical close, not the latest
+    one — otherwise avg_cost equals the current price and unrealized P&L is
+    always ~0. Falls back to the earliest available close if history doesn't
+    reach back to ``when``.
+    """
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    days_back = max((datetime.now(timezone.utc) - when).days, 0) + 5
+    period = next((p for p, span in _PERIOD_SPANS if days_back <= span), "max")
+    try:
+        result = await market_provider.get_history(symbol.upper(), period=period, interval="1d")
+    except RuntimeError as exc:
+        raise QuoteUnavailableError(f"Data provider unavailable for {symbol}") from exc
+    df = result.value
+    if df.empty:
+        raise QuoteUnavailableError(f"No price data for {symbol}")
+    on_or_before = df[df.index.date <= when.date()]
+    if not on_or_before.empty:
+        return float(on_or_before["Close"].iloc[-1])
+    return float(df["Close"].iloc[0])
+
+
 def _held_qty(trades: list[PaperTrade], symbol: str) -> float:
     qty = 0.0
     for t in trades:
@@ -118,12 +148,14 @@ async def execute_trade(
     if qty <= 0:
         raise InvalidQuantityError("qty must be positive")
 
+    backdated = executed_at is not None
     if executed_at is None:
         executed_at = datetime.now(timezone.utc)
 
     symbol = symbol.upper()
     portfolio = await get_or_create_portfolio(db, user_id)
-    price = await get_latest_price(symbol)
+    # Backdated trades price at the historical close on their date, not today's.
+    price = await get_price_asof(symbol, executed_at) if backdated else await get_latest_price(symbol)
     cost = qty * price
 
     if side == "buy":
