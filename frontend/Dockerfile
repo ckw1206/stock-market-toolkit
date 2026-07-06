@@ -12,7 +12,10 @@ ENV VITE_API_URL=
 ENV VITE_APP_VERSION=$VITE_APP_VERSION
 
 COPY package*.json ./
-RUN npm ci
+# Cache the npm download dir across builds so npm ci doesn't re-fetch every
+# package each time (the slow step); skip audit/fund network calls too.
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit --no-fund
 
 COPY . .
 RUN npm run build

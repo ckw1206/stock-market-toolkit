@@ -681,6 +681,7 @@
   "portfolio": {
     "title": "模擬交易投資組合",
     "cash": "現金",
+    "startingCash": "初始資金",
     "equity": "淨值",
     "unrealizedPnl": "未實現損益",
     "trade": {
@@ -689,7 +690,8 @@
       "side": "買賣方向",
       "buy": "買進",
       "sell": "賣出",
-      "qty": "數量"
+      "qty": "數量",
+      "executedAt": "回溯時間（選填）"
     },
     "positions": {
       "title": "持倉部位",
@@ -704,16 +706,30 @@
     "history": {
       "title": "交易紀錄",
       "empty": "尚無交易紀錄",
-      "executedAt": "成交時間"
+      "executedAt": "成交時間",
+      "actions": "操作",
+      "undo": "撤銷"
+    },
+    "reset": {
+      "button": "重設",
+      "title": "重設投資組合",
+      "description": "這會刪除所有交易並將現金重設為初始資金，且無法復原。",
+      "startingCashLabel": "初始資金",
+      "confirm": "重設投資組合",
+      "cancel": "取消"
     },
     "toast": {
       "bought": "已買進 {{qty}} 股 {{symbol}} @ ${{price}}",
-      "sold": "已賣出 {{qty}} 股 {{symbol}} @ ${{price}}"
+      "sold": "已賣出 {{qty}} 股 {{symbol}} @ ${{price}}",
+      "undone": "已移除交易",
+      "reset": "投資組合已重設"
     },
     "errors": {
       "loadFailed": "無法載入投資組合",
       "invalidTrade": "請輸入股票代號與正確的數量",
-      "tradeFailed": "交易失敗"
+      "tradeFailed": "交易失敗",
+      "undoFailed": "無法移除交易",
+      "resetFailed": "無法重設投資組合"
     }
   }
 }

@@ -27,7 +27,7 @@ EXPECTED_SCHEMAS = [
     # ingestion
     "JobRunResponse", "IngestStatusResponse",
     # paper trading
-    "PaperTradeRequest",
+    "PaperTradeRequest", "PaperPortfolioCreate",
 ]
 
 
@@ -38,4 +38,4 @@ def test_all_schemas_importable():
 
 def test_package_exports_match_expected():
     assert set(schemas.__all__) == set(EXPECTED_SCHEMAS)
-    assert len(EXPECTED_SCHEMAS) == 51
+    assert len(EXPECTED_SCHEMAS) == 52
