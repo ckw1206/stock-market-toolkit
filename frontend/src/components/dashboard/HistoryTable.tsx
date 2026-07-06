@@ -18,7 +18,7 @@ export default function HistoryTable({ stock }: { stock: StockData }) {
       close: stock.close[i],
       volume: stock.volume[i],
     }))
-    .filter((d) => Number(d.ts) >= CUTOFF)
+    .filter((d) => new Date(d.ts).getTime() >= CUTOFF)
     .reverse();
 
   return (
