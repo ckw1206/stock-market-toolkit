@@ -11,7 +11,7 @@ import FundamentalsCard from "./FundamentalsCard";
 import DividendCard from "./DividendCard";
 import WatchlistButton from "@/components/common/WatchlistButton";
 import NewsCard from "./NewsCard";
-import TopSignalsCard from "./TopSignalsCard";
+import TopSignalsStrip from "./TopSignalsStrip";
 import HeatmapCard from "./HeatmapCard";
 import PositionSizeCard from "./PositionSizeCard";
 import BreadthCard from "./BreadthCard";
@@ -28,7 +28,11 @@ export interface DashboardGridProps {
   topSignals?: TopSignalsData | null;
 }
 
-export default function DashboardGrid({ stock, indicators, info, fundamentals, dividends, news, newsLoading, active, topSignals }: DashboardGridProps) {
+// Fluid overview layout: card rows use auto-fit grids / flex-wrap so column
+// count adapts to width with no hardcoded breakpoints. See the design handoff.
+const AUTO_FIT = "grid gap-4 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]";
+
+export default function DashboardGrid({ stock, indicators, info, fundamentals, dividends, news, newsLoading, active }: DashboardGridProps) {
   const { t } = useTranslation();
   const dates = stock.timestamp.map((ts) =>
     new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
@@ -37,69 +41,50 @@ export default function DashboardGrid({ stock, indicators, info, fundamentals, d
   const showMacd = active.has("macd");
 
   return (
-    <div className="grid grid-cols-12 gap-4">
-      <div className="col-span-12">
-        <ChartCard title={`${stock.symbol} · ${stock.period.toUpperCase()}`} subtitle={t("common.charts.price")} toolbar={<WatchlistButton symbol={stock.symbol} />}>
-          <PriceChart data={stock} indicators={indicators} showBB={active.has("bb")} active={active} />
-        </ChartCard>
+    <div className="flex flex-col gap-4">
+      <TopSignalsStrip />
+
+      <ChartCard title={`${stock.symbol} · ${stock.period.toUpperCase()}`} subtitle={t("common.charts.price")} toolbar={<WatchlistButton symbol={stock.symbol} />}>
+        <PriceChart data={stock} indicators={indicators} showBB={active.has("bb")} active={active} />
+      </ChartCard>
+
+      {(showRsi || showMacd) && (
+        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
+          {showRsi && (
+            <ChartCard title="RSI (14)">
+              <RsiChart dates={dates} rsi={indicators.rsi} />
+            </ChartCard>
+          )}
+          {showMacd && (
+            <ChartCard title="MACD (12, 26, 9)">
+              <MacdChart dates={dates} macd={indicators.macd} signal={indicators.macd_signal} hist={indicators.macd_hist} />
+            </ChartCard>
+          )}
+        </div>
+      )}
+
+      {/* Stock info + capped-height history table, kept the same height so a
+          long row list never stretches the row taller than its neighbor. */}
+      <div className="flex flex-wrap items-stretch gap-4">
+        <div className="min-w-0 flex-[1_1_320px]">
+          <StockInfoCard info={info} stock={stock} className="stk-scroll h-[460px] overflow-y-auto" />
+        </div>
+        <div className="min-w-0 flex-[2_1_480px]">
+          <HistoryTable stock={stock} capped />
+        </div>
       </div>
 
-      {showRsi && (
-        <div className="col-span-12 lg:col-span-6">
-          <ChartCard title="RSI (14)">
-            <RsiChart dates={dates} rsi={indicators.rsi} />
-          </ChartCard>
+      {(fundamentals || dividends || news) && (
+        <div className={AUTO_FIT}>
+          {fundamentals && <FundamentalsCard data={fundamentals} />}
+          {dividends && <DividendCard data={dividends} />}
+          {news && <NewsCard news={news} loading={newsLoading} />}
         </div>
       )}
 
-      {showMacd && (
-        <div className="col-span-12 lg:col-span-6">
-          <ChartCard title="MACD (12, 26, 9)">
-            <MacdChart dates={dates} macd={indicators.macd} signal={indicators.macd_signal} hist={indicators.macd_hist} />
-          </ChartCard>
-        </div>
-      )}
-
-      <div className="col-span-12 lg:col-span-4">
-        <StockInfoCard info={info} stock={stock} />
-      </div>
-
-      <div className="col-span-12 lg:col-span-8">
-        <HistoryTable stock={stock} />
-      </div>
-
-      {fundamentals && (
-        <div className="col-span-12 lg:col-span-4">
-          <FundamentalsCard data={fundamentals} />
-        </div>
-      )}
-
-      {dividends && (
-        <div className="col-span-12 lg:col-span-4">
-          <DividendCard data={dividends} />
-        </div>
-      )}
-
-      {news && (
-        <div className="col-span-12 lg:col-span-4">
-          <NewsCard news={news} loading={newsLoading} />
-        </div>
-      )}
-
-      {topSignals && (
-        <div className="col-span-12 lg:col-span-6">
-          <TopSignalsCard />
-        </div>
-      )}
-      <div className="col-span-12 lg:col-span-6">
+      <div className={AUTO_FIT}>
         <HeatmapCard />
-      </div>
-
-      <div className="col-span-12 lg:col-span-4">
         <PositionSizeCard symbol={stock.symbol} />
-      </div>
-
-      <div className="col-span-12 lg:col-span-4">
         <BreadthCard />
       </div>
     </div>
