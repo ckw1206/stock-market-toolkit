@@ -23,6 +23,7 @@ def start_scheduler() -> AsyncIOScheduler:
     an already-shut-down scheduler.
     """
     from app.routes.cron import scan_signals_job
+    from app.services.alert_checker import check_alerts
 
     scheduler = AsyncIOScheduler()
 
@@ -36,6 +37,17 @@ def start_scheduler() -> AsyncIOScheduler:
         hour=3,
         minute=0,
         id="scan_signals",
+    )
+    # Same trap as issue #283: /cron/check-alerts said "called every 15 minutes
+    # by external scheduler", but no external scheduler exists — alerts never
+    # fired. Run the check in-process like the signal scan.
+    scheduler.add_job(
+        check_alerts,
+        "interval",
+        minutes=15,
+        id="check_alerts",
+        max_instances=1,
+        coalesce=True,
     )
     scheduler.start()
     return scheduler
