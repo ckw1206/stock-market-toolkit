@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.19.0](https://github.com/ckw1206/stock-market-toolkit/compare/v0.18.0...v0.19.0) (2026-07-09)
+
+
+### Features
+
+* preload watchlist ticker data at login and reuse it across pages ([#317](https://github.com/ckw1206/stock-market-toolkit/issues/317)) ([04c1435](https://github.com/ckw1206/stock-market-toolkit/commit/04c14351701cb6aef09aa2b5eaee3d0b3b6397fa))
+
+
+### Bug Fixes
+
+* actually schedule the alert check — alerts never fired ([#316](https://github.com/ckw1206/stock-market-toolkit/issues/316)) ([b3f669d](https://github.com/ckw1206/stock-market-toolkit/commit/b3f669dd46d57ed5dd980c3a728ef2ab321fadb8))
+* drop NaN-Close rows in the provider chain — they 500 whole responses ([#319](https://github.com/ckw1206/stock-market-toolkit/issues/319)) ([b188677](https://github.com/ckw1206/stock-market-toolkit/commit/b188677fc49bd0ca4ac5784916231a425ed7791a))
+* stop pinning a DB connection for the whole request in get_current_user ([#315](https://github.com/ckw1206/stock-market-toolkit/issues/315)) ([3ef6f85](https://github.com/ckw1206/stock-market-toolkit/commit/3ef6f854a4a4a21f846263587be8205346d467e5))
+
 ## [0.18.0](https://github.com/ckw1206/stock-market-toolkit/compare/v0.17.1...v0.18.0) (2026-07-09)
 
 
