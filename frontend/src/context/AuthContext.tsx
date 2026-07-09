@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, startTransition, type ReactNode } from "react";
 import axios from "axios";
+import { preloadTickers, clearTickerCache } from "../api/stockApi";
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -36,6 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       startTransition(() => setUser(res.data));
+      // Fire-and-forget: warm the ticker cache for the watchlist so pages
+      // open with data already loaded (runs on login and session restore).
+      void preloadTickers();
     } catch {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
@@ -80,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
+    clearTickerCache();
     setToken(null);
     setUser(null);
   };

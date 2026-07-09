@@ -12,27 +12,83 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// ── Ticker data cache ──
+// In-memory TTL cache with in-flight dedup so per-symbol data fetched once
+// (e.g. preloaded at login) is reused across pages instead of re-fetched on
+// every navigation. Mirrors the backend's services/cache.py contract.
+const _cache = new Map<string, { at: number; value: unknown }>();
+const _inflight = new Map<string, Promise<unknown>>();
+
+const PRICE_TTL_MS = 60_000; // OHLCV + indicators move intraday
+const INFO_TTL_MS = 3_600_000; // company info is near-static
+
+async function cachedGet<T>(key: string, ttlMs: number, loader: () => Promise<T>): Promise<T> {
+  const hit = _cache.get(key);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.value as T;
+  const pending = _inflight.get(key);
+  if (pending) return pending as Promise<T>;
+  const p = loader()
+    .then((value) => {
+      _cache.set(key, { at: Date.now(), value });
+      return value;
+    })
+    .finally(() => _inflight.delete(key));
+  _inflight.set(key, p);
+  return p;
+}
+
+/** Drop all cached ticker data (call on logout — cache may be user-scoped). */
+export function clearTickerCache(): void {
+  _cache.clear();
+}
+
+/** Warm the cache for the user's watchlist so pages open with data already
+ * loaded. Sequential on purpose: a login should not fan out dozens of
+ * concurrent requests. Best-effort — failures are ignored. */
+export async function preloadTickers(period: string = "1mo"): Promise<void> {
+  try {
+    const { getWatchlist } = await import("./watchlistApi");
+    const items = await getWatchlist();
+    for (const item of items) {
+      const symbol = item.symbol.toUpperCase();
+      try {
+        await Promise.all([getStock(symbol, period), getIndicators(symbol, period)]);
+      } catch {
+        // preload is best-effort; pages fetch on demand anyway
+      }
+    }
+  } catch {
+    // no watchlist / not authenticated — nothing to preload
+  }
+}
+
 export async function getStock(symbol: string, period: string): Promise<StockData> {
-  const res = await axios.get(`${API}/api/stock/${symbol}`, {
-    params: { period },
-    headers: authHeaders(),
+  return cachedGet(`stock:${symbol.toUpperCase()}:${period}`, PRICE_TTL_MS, async () => {
+    const res = await axios.get(`${API}/api/stock/${symbol}`, {
+      params: { period },
+      headers: authHeaders(),
+    });
+    return res.data;
   });
-  return res.data;
 }
 
 export async function getIndicators(symbol: string, period: string): Promise<Indicators> {
-  const res = await axios.get(`${API}/api/stock/${symbol}/indicators`, {
-    params: { period },
-    headers: authHeaders(),
+  return cachedGet(`indicators:${symbol.toUpperCase()}:${period}`, PRICE_TTL_MS, async () => {
+    const res = await axios.get(`${API}/api/stock/${symbol}/indicators`, {
+      params: { period },
+      headers: authHeaders(),
+    });
+    return res.data;
   });
-  return res.data;
 }
 
 export async function getStockInfo(symbol: string): Promise<StockInfo> {
-  const res = await axios.get(`${API}/api/stock/${symbol}/info`, {
-    headers: authHeaders(),
+  return cachedGet(`info:${symbol.toUpperCase()}`, INFO_TTL_MS, async () => {
+    const res = await axios.get(`${API}/api/stock/${symbol}/info`, {
+      headers: authHeaders(),
+    });
+    return res.data;
   });
-  return res.data;
 }
 
 export async function getFundamentals(symbol: string): Promise<Fundamentals> {
