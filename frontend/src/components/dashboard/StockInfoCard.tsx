@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import StatCard, { type StatTone } from "@/components/common/StatCard";
 import { cn } from "@/lib/utils";
 
-export default function StockInfoCard({ info, stock }: { info: StockInfo; stock: StockData }) {
+export default function StockInfoCard({ info, stock, className }: { info: StockInfo; stock: StockData; className?: string }) {
   const { t } = useTranslation();
   const currentPrice = stock.close[stock.close.length - 1];
   const prevPrice = stock.close[stock.close.length - 2] || currentPrice;
@@ -35,7 +35,7 @@ export default function StockInfoCard({ info, stock }: { info: StockInfo; stock:
   ];
 
   return (
-    <Card className="flex h-full flex-col">
+    <Card className={cn("flex h-full flex-col", className)}>
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 px-4 pb-3 pt-4">
         <div className="min-w-0">
           <div className="text-lg font-semibold">{info.symbol}</div>

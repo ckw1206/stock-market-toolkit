@@ -357,9 +357,18 @@
     "couldntLoadSymbol": "Couldn't load this symbol.",
     "noData": "No data to display.",
     "retry": "Retry",
+    "watchlist": {
+      "title": "Watchlist",
+      "count": "{{count}} symbols",
+      "add": "Add symbol",
+      "empty": "No symbols yet"
+    },
     "topSignals": {
       "title": "Today's Top Signals",
       "lastScan": "Last scan:",
+      "lastScanShort": "last scan",
+      "buy": "Buy",
+      "sell": "Sell",
       "buys": "BUYs",
       "sells": "SELLs",
       "hint": "Nightly scan of tracked symbols and your watchlist, ranked by composite signal score (BIAS, MACD, KDJ, volume, 52w breakout). Confidence reflects signal strength, not a guaranteed return — always do your own research."

@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleBar, MultiToggleBar } from "@/components/common/ToggleBar";
 import SymbolSearch from "@/components/common/SymbolSearch";
 import DashboardGrid from "@/components/dashboard/DashboardGrid";
+import WatchlistSidebar from "@/components/dashboard/WatchlistSidebar";
 
 const EditableGrid = lazy(() => import("@/components/dashboard/EditableGrid"));
 
@@ -137,45 +138,49 @@ export default function DashboardPage() {
   const ready = Boolean(stock && indicators && info);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <SymbolSearch value={symbol} onSearch={onSymbol} loading={loading} />
-        <ToggleBar ariaLabel={t("dashboard.timeframe")} options={TIMEFRAME_OPTIONS} value={period} onChange={onPeriod} />
-        <Button
-          variant={editMode ? "secondary" : "outline"}
-          size="sm"
-          className="ml-auto gap-2"
-          onClick={() => setEditMode((v) => !v)}
-        >
-          {editMode ? <List /> : <LayoutGrid />}
-          {editMode ? t("dashboard.done") : t("dashboard.editLayout")}
-        </Button>
-      </div>
+    <div className="flex flex-wrap items-start gap-5">
+      <WatchlistSidebar activeSymbol={symbol} onSelect={onSymbol} />
 
-      <MultiToggleBar ariaLabel={t("dashboard.indicators")} options={INDICATOR_OPTIONS} value={active} onChange={setActive} />
-
-      {error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
+      <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <SymbolSearch value={symbol} onSearch={onSymbol} loading={loading} />
+          <ToggleBar ariaLabel={t("dashboard.timeframe")} options={TIMEFRAME_OPTIONS} value={period} onChange={onPeriod} />
+          <Button
+            variant={editMode ? "secondary" : "outline"}
+            size="sm"
+            className="ml-auto gap-2"
+            onClick={() => setEditMode((v) => !v)}
+          >
+            {editMode ? <List /> : <LayoutGrid />}
+            {editMode ? t("dashboard.done") : t("dashboard.editLayout")}
+          </Button>
         </div>
-      )}
 
-      {loading && !ready ? (
-        <DashboardSkeleton />
-      ) : ready && stock && indicators && info ? (
-        editMode ? (
-          <Suspense fallback={<DashboardSkeleton />}>
-            <EditableGrid stock={stock} indicators={indicators} info={info} fundamentals={fundamentals} dividends={dividends} news={news} newsLoading={newsLoading} active={activeSet} topSignals={topSignals} />
-          </Suspense>
+        <MultiToggleBar ariaLabel={t("dashboard.indicators")} options={INDICATOR_OPTIONS} value={active} onChange={setActive} />
+
+        {error && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {loading && !ready ? (
+          <DashboardSkeleton />
+        ) : ready && stock && indicators && info ? (
+          editMode ? (
+            <Suspense fallback={<DashboardSkeleton />}>
+              <EditableGrid stock={stock} indicators={indicators} info={info} fundamentals={fundamentals} dividends={dividends} news={news} newsLoading={newsLoading} active={activeSet} topSignals={topSignals} />
+            </Suspense>
+          ) : (
+            <DashboardGrid stock={stock} indicators={indicators} info={info} fundamentals={fundamentals} dividends={dividends} news={news} newsLoading={newsLoading} active={activeSet} topSignals={topSignals} />
+          )
         ) : (
-          <DashboardGrid stock={stock} indicators={indicators} info={info} fundamentals={fundamentals} dividends={dividends} news={news} newsLoading={newsLoading} active={activeSet} topSignals={topSignals} />
-        )
-      ) : (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center text-sm text-muted-foreground">
-          <p>{error ? t("dashboard.couldntLoadSymbol") : t("dashboard.noData")}</p>
-          <Button variant="outline" size="sm" onClick={retry}>{t("dashboard.retry")}</Button>
-        </div>
-      )}
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center text-sm text-muted-foreground">
+            <p>{error ? t("dashboard.couldntLoadSymbol") : t("dashboard.noData")}</p>
+            <Button variant="outline" size="sm" onClick={retry}>{t("dashboard.retry")}</Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
