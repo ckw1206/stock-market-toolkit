@@ -26,7 +26,7 @@ export default function HistoryTable({ stock, capped = false }: { stock: StockDa
     <ChartCard
       title={t("common.cards.historicalData")}
       subtitle={t("common.cards.historicalDataSubtitle", { symbol: stock.symbol, count: rows.length })}
-      bodyClassName={capped ? "flex-1 min-h-0 overflow-y-auto px-0" : "px-0"}
+      bodyClassName={capped ? "stk-scroll flex-1 min-h-0 overflow-y-auto px-0" : "px-0"}
       className={capped ? "h-[460px]" : undefined}
     >
       <div className="overflow-x-auto">
