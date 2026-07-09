@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/ckw1206/stock-market-toolkit/compare/v0.17.1...v0.18.0) (2026-07-09)
+
+
+### Features
+
+* dashboard overview layout ([#312](https://github.com/ckw1206/stock-market-toolkit/issues/312)) ([0eebbcf](https://github.com/ckw1206/stock-market-toolkit/commit/0eebbcf35482c60a24a258a1133ca220523aab7e))
+
 ## [0.17.1](https://github.com/ckw1206/stock-market-toolkit/compare/v0.17.0...v0.17.1) (2026-07-06)
 
 
