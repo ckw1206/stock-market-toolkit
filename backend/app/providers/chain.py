@@ -76,6 +76,14 @@ class FallbackChain:
 
             try:
                 df: pd.DataFrame = await provider.get_history(symbol, period, interval, lookback_extra)
+                if not df.empty and "Close" in df.columns:
+                    # Providers (notably yfinance) can return trailing partial
+                    # rows with NaN Close. A NaN that reaches a JSON response
+                    # kills the whole request (starlette renders with
+                    # allow_nan=False → 500), and poisons quote lookups that
+                    # take Close.iloc[-1]. Drop such rows once, here, for every
+                    # consumer of the chain.
+                    df = df.dropna(subset=["Close"])
                 if df.empty:
                     # Empty DataFrame is a soft "no data for this symbol" — do not
                     # trip the circuit breaker so other symbols are still tried.
