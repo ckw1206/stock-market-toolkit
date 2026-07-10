@@ -35,7 +35,7 @@ export default function StockInfoCard({ info, stock, className }: { info: StockI
   ];
 
   return (
-    <Card className={cn("flex h-full flex-col", className)}>
+    <Card className={cn("flex h-full flex-col overflow-hidden", className)}>
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 px-4 pb-3 pt-4">
         <div className="min-w-0">
           <div className="text-lg font-semibold">{info.symbol}</div>
@@ -48,11 +48,13 @@ export default function StockInfoCard({ info, stock, className }: { info: StockI
           </div>
         </div>
       </CardHeader>
-      <CardContent className="px-4 pb-4 pt-0">
-        <div className="grid grid-cols-2 gap-2">
-          {stats.map((s) => (
-            <StatCard key={s.label} label={s.label} value={s.value} tone={s.tone} />
-          ))}
+      <CardContent className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-0">
+        <div className="stk-scroll flex-1 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-2">
+            {stats.map((s) => (
+              <StatCard key={s.label} label={s.label} value={s.value} tone={s.tone} />
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>

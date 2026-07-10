@@ -67,7 +67,7 @@ export default function DashboardGrid({ stock, indicators, info, fundamentals, d
           long row list never stretches the row taller than its neighbor. */}
       <div className="flex flex-wrap items-stretch gap-4">
         <div className="min-w-0 flex-[1_1_320px]">
-          <StockInfoCard info={info} stock={stock} className="stk-scroll h-[460px] overflow-y-auto" />
+          <StockInfoCard info={info} stock={stock} className="h-[460px]" />
         </div>
         <div className="min-w-0 flex-[2_1_480px]">
           <HistoryTable stock={stock} capped />
