@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.0](https://github.com/ckw1206/stock-market-toolkit/compare/v0.19.0...v0.20.0) (2026-07-10)
+
+
+### Features
+
+* support multiple Discord webhook channels for alert notifications ([#324](https://github.com/ckw1206/stock-market-toolkit/issues/324)) ([a00a9db](https://github.com/ckw1206/stock-market-toolkit/commit/a00a9db2816ea6144f4a64f49963966f88d83130))
+
+
+### Bug Fixes
+
+* **dashboard:** scope card scrollbars to content, matching HistoryTable ([#321](https://github.com/ckw1206/stock-market-toolkit/issues/321)) ([ba39178](https://github.com/ckw1206/stock-market-toolkit/commit/ba391789473e739da35009e3bae8d287fad6572a))
+* redirect to login on session expiry instead of showing raw error ([#323](https://github.com/ckw1206/stock-market-toolkit/issues/323)) ([c0fe1d5](https://github.com/ckw1206/stock-market-toolkit/commit/c0fe1d53f7969f95a7d5aafee69ddc7906608884))
+* **signals:** ignore empty scans when selecting latest top signals ([#320](https://github.com/ckw1206/stock-market-toolkit/issues/320)) ([ff177a2](https://github.com/ckw1206/stock-market-toolkit/commit/ff177a27af6a5dd37cddbf361a5f0c5bbd508e52))
+
 ## [0.19.0](https://github.com/ckw1206/stock-market-toolkit/compare/v0.18.0...v0.19.0) (2026-07-09)
 
 
