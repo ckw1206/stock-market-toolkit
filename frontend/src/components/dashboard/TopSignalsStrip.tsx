@@ -99,7 +99,10 @@ export default function TopSignalsStrip() {
       {loading && !data ? (
         <Skeleton className="h-7 w-full" />
       ) : !hasData ? (
-        <p className="py-1 text-center text-xs text-muted-foreground">{t("signals.scanEmpty.title")}</p>
+        // A completed scan with zero buys/sells means "all HOLD today", not "broken".
+        <p className="py-1 text-center text-xs text-muted-foreground">
+          {t(data?.scanned_at ? "signals.scanEmpty.allHold" : "signals.scanEmpty.title")}
+        </p>
       ) : (
         <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
           <ChipGroup label={t("dashboard.topSignals.buy")} tone="up" items={data.buys} onView={(s) => navigate(`/?symbol=${s}`)} />

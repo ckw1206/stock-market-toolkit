@@ -159,7 +159,10 @@ export default function TopSignalsCard({ className }: TopSignalsCardProps) {
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
-          <p className="py-4 text-center text-sm text-muted-foreground">{t("signals.scanEmpty.title")}</p>
+          {/* A completed scan with zero buys/sells means "all HOLD today", not "broken". */}
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            {t(data.scanned_at ? "signals.scanEmpty.allHold" : "signals.scanEmpty.title")}
+          </p>
         </CardContent>
       </Card>
     );

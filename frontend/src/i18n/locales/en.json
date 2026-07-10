@@ -625,6 +625,7 @@
       "description": "Add tickers to track their signals here"
     },
     "scanEmpty": {
+      "allHold": "Scan complete — no buy/sell signals today",
       "title": "No signal data yet",
       "description": "Run a scan to see top signals here"
     },
