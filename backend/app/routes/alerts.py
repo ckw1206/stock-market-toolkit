@@ -175,7 +175,7 @@ async def get_notification_settings(
         # Return defaults
         return NotificationSettingsResponse(
             user_id=current_user.id,
-            discord_webhook_url=None,
+            discord_webhook_urls=[],
             email_address=None,
             email_enabled=False,
             discord_enabled=True,
@@ -260,8 +260,8 @@ async def update_notification_settings(
     settings = result.scalar_one_or_none()
 
     if settings:
-        if data.discord_webhook_url is not None:
-            settings.discord_webhook_url = data.discord_webhook_url
+        if data.discord_webhook_urls is not None:
+            settings.discord_webhook_urls = data.discord_webhook_urls
         if data.email_address is not None:
             settings.email_address = data.email_address
         if data.email_subject is not None:
@@ -293,7 +293,7 @@ async def update_notification_settings(
     else:
         settings = NotificationSettings(
             user_id=current_user.id,
-            discord_webhook_url=data.discord_webhook_url,
+            discord_webhook_urls=data.discord_webhook_urls or [],
             email_address=data.email_address,
             email_subject=data.email_subject,
             email_body=data.email_body,

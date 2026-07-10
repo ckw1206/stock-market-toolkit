@@ -243,27 +243,28 @@ async def _send_notifications(
     delivery_records: list[NotificationDelivery] = []
     notified = False
 
-    if settings.discord_enabled and settings.discord_webhook_url:
-        success, http_status, error = await _send_discord_notification(
-            settings.discord_webhook_url,
-            symbol,
-            condition_type,
-            price,
-            threshold,
-            triggered_at,
-        )
-        delivery_records.append(
-            NotificationDelivery(
-                triggered_alert_id=None,  # filled after flush
-                user_id=alert.user_id,
-                channel="discord",
-                status="success" if success else "failed",
-                http_status=http_status,
-                error=error,
+    if settings.discord_enabled and settings.discord_webhook_urls:
+        for webhook_url in settings.discord_webhook_urls:
+            success, http_status, error = await _send_discord_notification(
+                webhook_url,
+                symbol,
+                condition_type,
+                price,
+                threshold,
+                triggered_at,
             )
-        )
-        if success:
-            notified = True
+            delivery_records.append(
+                NotificationDelivery(
+                    triggered_alert_id=None,  # filled after flush
+                    user_id=alert.user_id,
+                    channel="discord",
+                    status="success" if success else "failed",
+                    http_status=http_status,
+                    error=error,
+                )
+            )
+            if success:
+                notified = True
 
     if settings.email_enabled and settings.email_address:
         if not settings.smtp_host:
