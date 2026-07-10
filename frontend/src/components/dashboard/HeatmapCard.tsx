@@ -100,7 +100,7 @@ export default function HeatmapCard({ className }: HeatmapCardProps) {
             {t("dashboard.heatmap.empty")}
           </p>
         ) : (
-          <div className="max-h-[240px] space-y-3 overflow-y-auto">
+          <div className="stk-scroll max-h-[240px] space-y-3 overflow-y-auto">
             {data.sectors.map((sector) => (
               <div key={sector.sector}>
                 <p className="mb-1 text-xs uppercase text-muted-foreground">
