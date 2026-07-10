@@ -625,6 +625,7 @@
       "description": "在此新增股票代號以追蹤其信號"
     },
     "scanEmpty": {
+      "allHold": "掃描完成 — 今日無買入/賣出信號",
       "title": "尚無信號資料",
       "description": "執行掃描以在此處查看精選信號"
     },
