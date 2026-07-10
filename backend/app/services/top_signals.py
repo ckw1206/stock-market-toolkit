@@ -146,8 +146,16 @@ async def run_signal_scan(job_run_id: Optional[int] = None) -> dict:
 async def get_latest_scan(db) -> Optional[SignalScan]:
     from sqlalchemy import select
 
+    # Only consider scans that persisted at least one result. A nightly run where
+    # every provider was rate-limited still writes a SignalScan row with a fresh
+    # scanned_at but zero ScanResults; without this filter that empty scan masks
+    # the last good one, so the dashboard shows "no signal data" (with a recent
+    # "last scan Xh ago") despite having usable data from the prior scan.
     result = await db.execute(
-        select(SignalScan).order_by(SignalScan.scanned_at.desc()).limit(1)
+        select(SignalScan)
+        .where(SignalScan.results.any())
+        .order_by(SignalScan.scanned_at.desc())
+        .limit(1)
     )
     return result.scalar_one_or_none()
 

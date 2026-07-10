@@ -4,7 +4,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
 
 import pytest
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.database import Base
 from app.models import SignalScan, ScanResult
 
 
@@ -145,6 +148,43 @@ async def test_get_top_signals_returns_latest_scan(mock_db):
     assert result["scanned_at"] is not None
     assert len(result["buys"]) == 1
     assert len(result["sells"]) == 1
+
+
+@pytest_asyncio.fixture
+async def sessionmaker():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+    yield maker
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_get_top_signals_ignores_empty_later_scan(sessionmaker):
+    """A newer scan that persisted zero results must not mask the last good scan.
+
+    Regression: a nightly run where every provider is rate-limited still writes a
+    SignalScan row (fresh scanned_at) with no ScanResults. get_latest_scan used to
+    return it, so the dashboard showed "no signal data" despite the prior scan
+    having buys/sells.
+    """
+    from app.services.top_signals import get_top_signals
+
+    async with sessionmaker() as db:
+        good = SignalScan(scanned_at=datetime(2026, 7, 9, tzinfo=timezone.utc))
+        db.add(good)
+        await db.flush()
+        db.add(ScanResult(scan_id=good.id, symbol="AAPL", signal="BUY", score=0.8, confidence=0.8, price=150.0, rank=1))
+        # Newer, but empty (no results).
+        db.add(SignalScan(scanned_at=datetime(2026, 7, 10, tzinfo=timezone.utc)))
+        await db.commit()
+
+        result = await get_top_signals(db, limit=10)
+
+    assert len(result["buys"]) == 1
+    assert result["buys"][0]["symbol"] == "AAPL"
+    assert result["scanned_at"].startswith("2026-07-09")
 
 
 @pytest.mark.asyncio
