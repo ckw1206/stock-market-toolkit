@@ -262,6 +262,8 @@ async def update_notification_settings(
     if settings:
         if data.discord_webhook_urls is not None:
             settings.discord_webhook_urls = data.discord_webhook_urls
+            # Dual-write for rollback safety — see NotificationSettings model.
+            settings.discord_webhook_url = (data.discord_webhook_urls or [None])[0]
         if data.email_address is not None:
             settings.email_address = data.email_address
         if data.email_subject is not None:
@@ -294,6 +296,7 @@ async def update_notification_settings(
         settings = NotificationSettings(
             user_id=current_user.id,
             discord_webhook_urls=data.discord_webhook_urls or [],
+            discord_webhook_url=(data.discord_webhook_urls or [None])[0],
             email_address=data.email_address,
             email_subject=data.email_subject,
             email_body=data.email_body,

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Boolean, Integer, ForeignKey, Text, DateTime, JSON
+from sqlalchemy import Column, String, Float, Boolean, Integer, ForeignKey, Text, DateTime, JSON, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -52,7 +52,13 @@ class NotificationSettings(Base):
     __tablename__ = "notification_settings"
 
     user_id = Column(String, ForeignKey("users.id"), primary_key=True)
-    discord_webhook_urls = Column(JSON, nullable=False, default=list)
+    discord_webhook_urls = Column(
+        JSON, nullable=False, default=list, server_default=text("'[]'")
+    )
+    # ponytail: legacy single-URL column, kept + dual-written (first URL) so a
+    # code rollback past this release still works; drop in a later contract
+    # migration once no deployed code reads it.
+    discord_webhook_url = Column(Text, nullable=True)
     email_address = Column(String, nullable=True)
     email_enabled = Column(Boolean, default=False)
     email_subject = Column(String(length=255), nullable=True)

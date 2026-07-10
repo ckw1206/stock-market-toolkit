@@ -140,7 +140,8 @@ class NotificationSettingsUpdate(BaseModel):
     def _drop_blank_webhooks(cls, v: Optional[list[str]]) -> Optional[list[str]]:
         if v is None:
             return v
-        return [url.strip() for url in v if url.strip()]
+        # Strip blanks and dedupe (order-preserving) so one channel isn't pinged twice.
+        return list(dict.fromkeys(url.strip() for url in v if url.strip()))
     email_address: Optional[EmailStr] = None
     email_enabled: bool = False
     discord_enabled: bool = True
