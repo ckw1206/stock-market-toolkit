@@ -116,6 +116,25 @@ async def run_signal_scan(job_run_id: Optional[int] = None) -> dict:
     for rank, r in enumerate(sells, 1):
         r.rank = rank
 
+    if not results:
+        # An all-failed run (provider outage, rate limiting) must not persist an
+        # empty SignalScan/MarketBreadth: top signals, screener, and breadth all
+        # key off the newest scan, so an empty one masks the last good data.
+        # The JobRun row already records that this run happened.
+        log.warning(
+            "Signal scan produced no results (%d symbols, %d errors); not persisting",
+            total_symbols,
+            errors,
+        )
+        return {
+            "scan_id": None,
+            "symbols_processed": 0,
+            "total_symbols": total_symbols,
+            "errors": errors,
+            "buys": 0,
+            "sells": 0,
+        }
+
     breadth_stats = compute_breadth(results)
 
     async with AsyncSessionLocal() as db:

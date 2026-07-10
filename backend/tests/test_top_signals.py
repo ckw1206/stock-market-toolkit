@@ -150,6 +150,36 @@ async def test_get_top_signals_returns_latest_scan(mock_db):
     assert len(result["sells"]) == 1
 
 
+@pytest.mark.asyncio
+async def test_run_signal_scan_does_not_persist_empty_scan():
+    """An all-failed run must not write a SignalScan/MarketBreadth row —
+    an empty scan would become the "latest scan" and mask the last good data
+    for top signals, screener, and market breadth."""
+    from app.services.top_signals import run_signal_scan
+
+    with (
+        patch("app.services.top_signals.AsyncSessionLocal") as mock_session,
+        patch("app.services.top_signals.get_scan_universe", AsyncMock(return_value=["AAPL", "MSFT"])),
+        patch("app.services.top_signals.compute_signal_for_symbol", AsyncMock(return_value=None)),
+        patch("app.services.top_signals.get_settings") as mock_settings,
+    ):
+        mock_db = MagicMock()
+        mock_db.execute = AsyncMock()
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db.__aexit__ = AsyncMock(return_value=None)
+        mock_session.return_value = mock_db
+        mock_settings.return_value.INGEST_DELAY_SECONDS = 0
+
+        result = await run_signal_scan()
+
+    assert result["scan_id"] is None
+    assert result["symbols_processed"] == 0
+    mock_db.add.assert_not_called()
+    mock_db.commit.assert_not_called()
+
+
 @pytest_asyncio.fixture
 async def sessionmaker():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
