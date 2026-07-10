@@ -28,6 +28,18 @@ jobs:
       - name: Lint with ruff
         run: ruff check .
 
+      # Two branches each adding a migration off the same parent merge cleanly
+      # in git but leave alembic with two heads, which aborts app startup
+      # (main.py runs `upgrade heads` in-process). Catch it here instead.
+      - name: Check for single alembic head
+        run: |
+          HEADS=$(python -m alembic heads | wc -l)
+          if [ "$HEADS" -ne 1 ]; then
+            echo "Expected exactly 1 alembic head, found $HEADS:"
+            python -m alembic heads
+            exit 1
+          fi
+
       - name: Run tests
         run: pytest -v
 
