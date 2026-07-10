@@ -52,7 +52,7 @@ export interface TriggeredAlert {
 
 export interface NotificationSettings {
   user_id: string;
-  discord_webhook_url: string | null;
+  discord_webhook_urls: string[];
   email_address: string | null;
   email_enabled: boolean;
   email_subject: string | null;

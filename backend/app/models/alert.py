@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Boolean, Integer, ForeignKey, Text, DateTime
+from sqlalchemy import Column, String, Float, Boolean, Integer, ForeignKey, Text, DateTime, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -52,7 +52,7 @@ class NotificationSettings(Base):
     __tablename__ = "notification_settings"
 
     user_id = Column(String, ForeignKey("users.id"), primary_key=True)
-    discord_webhook_url = Column(Text, nullable=True)
+    discord_webhook_urls = Column(JSON, nullable=False, default=list)
     email_address = Column(String, nullable=True)
     email_enabled = Column(Boolean, default=False)
     email_subject = Column(String(length=255), nullable=True)

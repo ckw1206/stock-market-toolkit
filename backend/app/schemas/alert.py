@@ -94,7 +94,7 @@ class TriggeredAlertResponse(BaseModel):
 
 class NotificationSettingsResponse(BaseModel):
     user_id: str
-    discord_webhook_url: Optional[str] = None
+    discord_webhook_urls: list[str] = []
     email_address: Optional[str] = None
     email_enabled: bool
     discord_enabled: bool
@@ -133,7 +133,14 @@ class NotificationSettingsResponse(BaseModel):
 
 
 class NotificationSettingsUpdate(BaseModel):
-    discord_webhook_url: Optional[str] = None
+    discord_webhook_urls: Optional[list[str]] = None
+
+    @field_validator("discord_webhook_urls")
+    @classmethod
+    def _drop_blank_webhooks(cls, v: Optional[list[str]]) -> Optional[list[str]]:
+        if v is None:
+            return v
+        return [url.strip() for url in v if url.strip()]
     email_address: Optional[EmailStr] = None
     email_enabled: bool = False
     discord_enabled: bool = True

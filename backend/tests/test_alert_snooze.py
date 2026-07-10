@@ -51,7 +51,7 @@ async def _seed(maker, *, snoozed_until=None, quiet_start=None, quiet_end=None):
         )
         settings = NotificationSettings(
             user_id="u1",
-            discord_webhook_url="https://discord.example/webhook",
+            discord_webhook_urls=["https://discord.example/webhook"],
             discord_enabled=True,
             email_enabled=False,
             quiet_start=quiet_start,

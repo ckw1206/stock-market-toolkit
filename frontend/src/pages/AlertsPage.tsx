@@ -550,7 +550,9 @@ function NotificationSettingsPanel({ settings, onUpdate }: {
   onUpdate: (s: NotificationSettings) => void;
 }) {
   const { t } = useTranslation();
-  const [discordWebhook, setDiscordWebhook] = useState(settings.discord_webhook_url || "");
+  const [discordWebhooks, setDiscordWebhooks] = useState(
+    settings.discord_webhook_urls.length ? settings.discord_webhook_urls : [""]
+  );
   const [discordEnabled, setDiscordEnabled] = useState(settings.discord_enabled);
   const [timezone, setTimezone] = useState(settings.timezone || "UTC");
   const [quietStart, setQuietStart] = useState(settings.quiet_start || "");
@@ -571,8 +573,20 @@ function NotificationSettingsPanel({ settings, onUpdate }: {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
-  const [testingDiscord, setTestingDiscord] = useState(false);
+  const [testingDiscordIndex, setTestingDiscordIndex] = useState<number | null>(null);
   const [testingSmtp, setTestingSmtp] = useState(false);
+
+  const updateDiscordWebhook = (idx: number, value: string) => {
+    setDiscordWebhooks(prev => prev.map((w, i) => i === idx ? value : w));
+  };
+
+  const addDiscordWebhook = () => {
+    setDiscordWebhooks(prev => [...prev, ""]);
+  };
+
+  const removeDiscordWebhook = (idx: number) => {
+    setDiscordWebhooks(prev => prev.filter((_, i) => i !== idx));
+  };
 
   const handleSave = async () => {
     if ((quietStart && !quietEnd) || (!quietStart && quietEnd)) {
@@ -584,7 +598,7 @@ function NotificationSettingsPanel({ settings, onUpdate }: {
     setError("");
     try {
       const payload: Record<string, unknown> = {
-        discord_webhook_url: discordWebhook || null,
+        discord_webhook_urls: discordWebhooks.map(w => w.trim()).filter(Boolean),
         discord_enabled: discordEnabled,
         email_enabled: emailEnabled,
         email_address: emailAddress || null,
@@ -615,15 +629,15 @@ function NotificationSettingsPanel({ settings, onUpdate }: {
     }
   };
 
-  const handleTestDiscord = async () => {
-    setTestingDiscord(true);
+  const handleTestDiscord = async (idx: number, url: string) => {
+    setTestingDiscordIndex(idx);
     try {
-      await testDiscordWebhook(discordWebhook);
+      await testDiscordWebhook(url);
       toast.success("Test message sent — check your Discord channel");
     } catch (err: unknown) {
       toast.error((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Test failed");
     } finally {
-      setTestingDiscord(false);
+      setTestingDiscordIndex(null);
     }
   };
 
@@ -661,27 +675,47 @@ function NotificationSettingsPanel({ settings, onUpdate }: {
           <Label htmlFor="discord-toggle">{t("alerts.settings.enableDiscord")}</Label>
         </div>
 {discordEnabled && (
-          <>
-            <div className="grid gap-2">
-              <Label htmlFor="webhook">Discord Webhook URL</Label>
-              <Input
-                id="webhook"
-                placeholder="https://discord.com/api/webhooks/..."
-                value={discordWebhook}
-                onChange={e => setDiscordWebhook(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Get your webhook URL from Discord channel settings → Integrations → Webhooks
-              </p>
+          <div className="grid gap-3">
+            <div className="flex items-center justify-between">
+              <Label>Discord Webhook URLs</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addDiscordWebhook}>
+                <Plus className="size-3.5 mr-1" /> Add channel
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              disabled={!discordWebhook || testingDiscord}
-              onClick={handleTestDiscord}
-            >
-              {testingDiscord ? "Sending…" : "Send test"}
-            </Button>
-          </>
+            {discordWebhooks.map((webhook, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <Input
+                  placeholder="https://discord.com/api/webhooks/..."
+                  value={webhook}
+                  onChange={e => updateDiscordWebhook(idx, e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!webhook.trim() || testingDiscordIndex === idx}
+                  onClick={() => handleTestDiscord(idx, webhook)}
+                >
+                  {testingDiscordIndex === idx ? "Sending…" : "Send test"}
+                </Button>
+                {discordWebhooks.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeDiscordWebhook(idx)}
+                    className="text-muted-foreground hover:text-destructive shrink-0"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <p className="text-xs text-muted-foreground">
+              Get a webhook URL from Discord channel settings → Integrations → Webhooks
+            </p>
+          </div>
         )}
 
         {/* Email section */}
