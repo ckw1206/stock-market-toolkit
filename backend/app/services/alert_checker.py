@@ -140,8 +140,13 @@ async def _get_indicators(symbol: str, period: str) -> dict:
                 result["macd_signal"] = _clean(float(macd_df["MACDs_12_26_9"].iloc[-1]))
 
         if len(close) >= 2:
-            pct = ((float(close.iloc[-1]) - float(close.iloc[0])) / float(close.iloc[0])) * 100
-            result["pct_change"] = pct
+            # Measure one Period interval: PERIOD_MAP's interval is the period
+            # the user picked, so the previous bar is exactly one period back.
+            # Anchoring to close.iloc[0] would span the whole history window
+            # (e.g. 5 days for a "15 min" alert).
+            prev = float(close.iloc[-2])
+            if prev:
+                result["pct_change"] = ((float(close.iloc[-1]) - prev) / prev) * 100
 
         if len(close) >= 20:
             indicators = compute_indicators(close, high, low, volume, n, macd_df)
