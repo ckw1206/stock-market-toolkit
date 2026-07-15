@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.1](https://github.com/ckw1206/stock-market-toolkit/compare/v0.20.0...v0.20.1) (2026-07-15)
+
+
+### Bug Fixes
+
+* **alerts:** measure % Change over one Period interval ([#326](https://github.com/ckw1206/stock-market-toolkit/issues/326)) ([311e51a](https://github.com/ckw1206/stock-market-toolkit/commit/311e51a716f9fbcb580e06daa5a4b5f2c31e93e5))
+
 ## [0.20.0](https://github.com/ckw1206/stock-market-toolkit/compare/v0.19.0...v0.20.0) (2026-07-10)
 
 
