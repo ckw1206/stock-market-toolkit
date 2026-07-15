@@ -1,6 +1,7 @@
 *.pyc
 __pycache__/
 *.log
+backend/logs/
 venv/
 .venv/
 node_modules/
