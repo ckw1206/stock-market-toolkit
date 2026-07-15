@@ -20,3 +20,6 @@ ds-bundle/
 .design-sync/learnings/
 .design-sync/node_modules
 frontend/.ds-compiled.css
+
+# superpowers working docs (plans/specs) — local only
+docs/superpowers/
