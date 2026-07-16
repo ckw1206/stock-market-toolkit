@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.3](https://github.com/ckw1206/stock-market-toolkit/compare/v0.20.2...v0.20.3) (2026-07-16)
+
+
+### Bug Fixes
+
+* **notifications:** show matched conditions in alert cards, fix alert… ([#330](https://github.com/ckw1206/stock-market-toolkit/issues/330)) ([fbd0f94](https://github.com/ckw1206/stock-market-toolkit/commit/fbd0f94e39d0e89ac0cd7cf2422aa2a9538fa0c3))
+
 ## [0.20.2](https://github.com/ckw1206/stock-market-toolkit/compare/v0.20.1...v0.20.2) (2026-07-16)
 
 

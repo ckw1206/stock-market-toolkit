@@ -11,7 +11,7 @@
 export const normalizeVersion = (v: string): string => v.replace(/^v/, "");
 
 export const APP_VERSION = normalizeVersion(
-  (import.meta.env.VITE_APP_VERSION as string) || "0.20.2", // x-release-please-version
+  (import.meta.env.VITE_APP_VERSION as string) || "0.20.3", // x-release-please-version
 );
 
 // Centralized release page URL — used by Navbar and Footer
