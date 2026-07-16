@@ -19,7 +19,10 @@ from app.models import (
 from app.providers import market_provider
 from app.services.cache import cached, cache_key
 from app.services.mailer import send_email
-from app.services.notification.discord import _send_discord_notification
+from app.services.notification.discord import (
+    _send_discord_notification,
+    describe_condition,
+)
 from app.services.notification.email import render_alert_email
 from app.services.quiet_hours import in_quiet_hours
 from app.utils.numeric import _clean
@@ -221,19 +224,31 @@ def _should_trigger(
     return False
 
 
-def _check_multi_condition(alert: Alert, indicators: dict) -> bool:
-    """Evaluate all conditions of an alert using its combinator."""
+def _check_multi_condition(
+    alert: Alert, indicators: dict
+) -> tuple[bool, list[AlertCondition]]:
+    """Evaluate all conditions of an alert using its combinator.
+
+    Returns (triggered, matched_conditions) so notifications can say WHICH
+    condition(s) fired instead of the opaque 'multi' + 0.0 threshold.
+    """
     conditions = alert.conditions or []
     if not conditions:
-        return False
+        return False, []
 
     combinator = alert.combinator or "all"
-    results = [_evaluate_condition(c, indicators) for c in conditions]
+    matched = [c for c in conditions if _evaluate_condition(c, indicators)]
 
     if combinator == "all":
-        return all(results)
+        return len(matched) == len(conditions), matched
     else:
-        return any(results)
+        return bool(matched), matched
+
+
+def _conditions_text(conditions: list[AlertCondition]) -> str | None:
+    if not conditions:
+        return None
+    return "\n".join(describe_condition(c.metric, c.operator, c.value) for c in conditions)
 
 
 async def _send_notifications(
@@ -244,12 +259,19 @@ async def _send_notifications(
     price: float,
     threshold: float,
     triggered_at: datetime,
+    conditions_text: str | None = None,
 ) -> tuple[list[NotificationDelivery], bool]:
     """Dispatch Discord/email for one triggered alert. Returns (deliveries, notified).
 
     Shared by the live per-symbol check and the quiet-hours catch-up so both
-    paths record delivery attempts identically.
+    paths record delivery attempts identically. For multi-condition alerts,
+    conditions_text describes the matched condition(s); the catch-up path
+    doesn't know which matched, so it falls back to all of the alert's
+    conditions.
     """
+    if conditions_text is None and alert.conditions:
+        conditions_text = _conditions_text(alert.conditions)
+
     delivery_records: list[NotificationDelivery] = []
     notified = False
 
@@ -262,6 +284,7 @@ async def _send_notifications(
                 price,
                 threshold,
                 triggered_at,
+                conditions_text=conditions_text,
             )
             delivery_records.append(
                 NotificationDelivery(
@@ -470,9 +493,11 @@ async def check_alerts():
                     trigger_condition_type = alert.condition_type
                     trigger_threshold = alert.threshold
 
+                    matched_text: str | None = None
                     if alert.conditions:
                         # Multi-condition evaluation
-                        triggered = _check_multi_condition(alert, indicators)
+                        triggered, matched = _check_multi_condition(alert, indicators)
+                        matched_text = _conditions_text(matched)
                     else:
                         # Legacy single-condition evaluation
                         period_start_price = None
@@ -517,6 +542,7 @@ async def check_alerts():
                                 current_price,
                                 trigger_threshold,
                                 now,
+                                conditions_text=matched_text,
                             )
                             if notified:
                                 triggered_record.notified = True

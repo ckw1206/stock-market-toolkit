@@ -4,6 +4,9 @@ Email notification body builder for alert triggers.
 
 from datetime import datetime
 
+from app.config import get_settings
+from app.services.notification.discord import describe_condition
+
 CONDITION_LABELS = {
     "above": "🔼 Above",
     "below": "🔽 Below",
@@ -12,9 +15,19 @@ CONDITION_LABELS = {
 }
 
 
+def _condition_str(alert) -> str:
+    """Label for the alert's condition; multi-condition alerts list each condition."""
+    if alert.conditions:
+        joiner = " AND " if (alert.combinator or "all") == "all" else " OR "
+        return joiner.join(
+            describe_condition(c.metric, c.operator, c.value) for c in alert.conditions
+        )
+    return CONDITION_LABELS.get(alert.condition_type, alert.condition_type)
+
+
 def _threshold_str(alert) -> str:
-    """Human-readable threshold; tolerates a null threshold (multi-condition alerts)."""
-    if alert.threshold is None:
+    """Human-readable threshold; n/a for multi-condition alerts (values live in the conditions)."""
+    if alert.threshold is None or alert.conditions:
         return "n/a"
     if alert.condition_type in ("above", "below"):
         return f"${alert.threshold:.2f}"
@@ -47,7 +60,7 @@ def render_alert_email(
     variables = {
         "{symbol}": symbol,
         "{price}": f"{current_price:.2f}",
-        "{condition}": CONDITION_LABELS.get(alert.condition_type, alert.condition_type),
+        "{condition}": _condition_str(alert),
         "{threshold}": _threshold_str(alert),
         "{triggered_at}": triggered_at.strftime("%Y-%m-%d %H:%M UTC"),
     }
@@ -69,13 +82,18 @@ def _build_email_body(
     current_price: float,
     triggered_at: datetime,
 ) -> str:
-    condition_label = CONDITION_LABELS.get(alert.condition_type, alert.condition_type)
+    condition_label = _condition_str(alert)
     threshold_str = _threshold_str(alert)
-    return f"""<h2>Price Alert Triggered</h2>
+    body = f"""<h2>Price Alert Triggered</h2>
 <p><b>Symbol:</b> {symbol}</p>
 <p><b>Condition:</b> {condition_label}</p>
 <p><b>Current Price:</b> ${current_price:.2f}</p>
 <p><b>Threshold:</b> {threshold_str}</p>
-<p><b>Triggered At:</b> {triggered_at.strftime("%Y-%m-%d %H:%M UTC")}</p>
+<p><b>Triggered At:</b> {triggered_at.strftime("%Y-%m-%d %H:%M UTC")}</p>"""
+    frontend = get_settings().FRONTEND_URL.rstrip("/")
+    if frontend:
+        alerts_url = f"{frontend}/alerts"
+        body += f"""
 <hr>
-<p>View and manage your alerts at <a href="https://stock-toolkit.app/alerts">stock-toolkit.app</a>.</p>"""
+<p>View and manage your alerts at <a href="{alerts_url}">{alerts_url}</a>.</p>"""
+    return body
