@@ -22,6 +22,7 @@ class Settings:
         "http://localhost:5173",
         "http://localhost:3000",
     ]
+    FRONTEND_URL: str = _get_env("FRONTEND_URL", "https://stock.kylelabs.site")
     LOG_LEVEL: str = _get_env("LOG_LEVEL", "INFO")
     IS_DOCKER: bool = _get_env("IS_DOCKER", "false").lower() == "true"
     ADMIN_EMAIL: str = _get_env("ADMIN_EMAIL", "admin@stocktoolkit.local")
