@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.2](https://github.com/ckw1206/stock-market-toolkit/compare/v0.20.1...v0.20.2) (2026-07-16)
+
+
+### Bug Fixes
+
+* **alerts:** anchor % Change to previous daily close from the daily feed ([#328](https://github.com/ckw1206/stock-market-toolkit/issues/328)) ([700c84d](https://github.com/ckw1206/stock-market-toolkit/commit/700c84da2bd4287c9be06363afb2804be222e865))
+
 ## [0.20.1](https://github.com/ckw1206/stock-market-toolkit/compare/v0.20.0...v0.20.1) (2026-07-15)
 
 
