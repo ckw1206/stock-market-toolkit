@@ -139,14 +139,19 @@ async def _get_indicators(symbol: str, period: str) -> dict:
                 result["macd_hist"] = _clean(float(macd_df["MACDh_12_26_9"].iloc[-1]))
                 result["macd_signal"] = _clean(float(macd_df["MACDs_12_26_9"].iloc[-1]))
 
-        if len(close) >= 2:
-            # Measure one Period interval: PERIOD_MAP's interval is the period
-            # the user picked, so the previous bar is exactly one period back.
-            # Anchoring to close.iloc[0] would span the whole history window
-            # (e.g. 5 days for a "15 min" alert).
-            prev = float(close.iloc[-2])
-            if prev:
-                result["pct_change"] = ((float(close.iloc[-1]) - prev) / prev) * 100
+        # pct_change (漲跌幅) = today's change vs the previous trading day's
+        # close — the % every quote page shows. Anchor to the DAILY feed, not
+        # the intraday frame: Yahoo's intraday history can contain bars for
+        # days the daily feed (and quote pages) treat as non-trading days
+        # (seen live on 00631L.TW 2026-07-15), which would silently shift the
+        # anchor. Earlier anchors (previous bar, window start) were both wrong.
+        daily_df = await _get_ohlcv_df(symbol, "1d")
+        if not daily_df.empty:
+            daily_close = daily_df["Close"]
+            prior = daily_close[daily_close.index.normalize() < close.index[-1].normalize()]
+            if not prior.empty and float(prior.iloc[-1]):
+                prev_close = float(prior.iloc[-1])
+                result["pct_change"] = ((price - prev_close) / prev_close) * 100
 
         if len(close) >= 20:
             indicators = compute_indicators(close, high, low, volume, n, macd_df)
