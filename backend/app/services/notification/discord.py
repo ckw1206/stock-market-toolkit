@@ -51,8 +51,9 @@ def describe_condition(metric: str, operator: str, value: float) -> str:
     )
 
 
-def _alerts_url() -> str:
-    return f"{get_settings().FRONTEND_URL}/alerts"
+def _alerts_url() -> str | None:
+    base = get_settings().FRONTEND_URL.rstrip("/")
+    return f"{base}/alerts" if base else None
 
 
 def _build_discord_embed(
@@ -70,14 +71,18 @@ def _build_discord_embed(
     the condition(s) that matched — shown instead of the raw condition_type and
     the meaningless 0.0 threshold.
     """
+    url = _alerts_url()
+
     if symbol is None:
         # Test notification
-        return {
+        embed = {
             "title": "🔔 Test notification",
             "description": "Your Discord webhook is configured correctly.",
             "color": 0x2ECC71,
-            "url": _alerts_url(),
         }
+        if url:
+            embed["url"] = url
+        return embed
 
     color = DISCORD_COLOR_ABOVE if condition_type == "above" else DISCORD_COLOR_BELOW
     price_str = f"${current_price:.2f}"
@@ -105,7 +110,7 @@ def _build_discord_embed(
             {"name": "Threshold", "value": threshold_str, "inline": True},
         ]
 
-    return {
+    embed = {
         "title": title,
         "description": f"Current price: {price_str} {price_change_str}",
         "color": color,
@@ -117,8 +122,10 @@ def _build_discord_embed(
                 "inline": True,
             },
         ],
-        "url": _alerts_url(),
     }
+    if url:
+        embed["url"] = url
+    return embed
 
 
 async def _send_discord_notification(

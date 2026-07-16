@@ -37,9 +37,19 @@ class TestDiscordEmbed:
         assert "Above" in embed["title"]
         assert {"name": "Threshold", "value": "$195.00", "inline": True} in embed["fields"]
 
-    def test_alert_url_points_to_frontend(self):
+    def test_alert_url_from_frontend_url_setting(self, monkeypatch):
+        from app.config import get_settings
+
+        monkeypatch.setattr(get_settings(), "FRONTEND_URL", "https://stock.example.com")
         embed = _build_discord_embed(None, None, None, None, None, None)
-        assert embed["url"] == "https://stock.kylelabs.site/alerts"
+        assert embed["url"] == "https://stock.example.com/alerts"
+
+    def test_no_url_when_frontend_url_unset(self, monkeypatch):
+        from app.config import get_settings
+
+        monkeypatch.setattr(get_settings(), "FRONTEND_URL", "")
+        embed = _build_discord_embed(None, None, None, None, None, None)
+        assert "url" not in embed
 
     def test_describe_condition(self):
         assert describe_condition("pct_change", "crosses_above", 2.0) == "% Change crosses above 2.0%"
@@ -47,7 +57,10 @@ class TestDiscordEmbed:
 
 
 class TestEmailMultiCondition:
-    def test_email_body_lists_conditions(self):
+    def test_email_body_lists_conditions(self, monkeypatch):
+        from app.config import get_settings
+
+        monkeypatch.setattr(get_settings(), "FRONTEND_URL", "https://stock.example.com")
         alert = SimpleNamespace(
             condition_type="multi",
             threshold=0.0,
@@ -60,4 +73,4 @@ class TestEmailMultiCondition:
         body = _build_email_body("00631L.TW", alert, 37.23, TRIGGERED_AT)
         assert "Price > $38 OR % Change crosses above 2.0%" in body
         assert "multi" not in body
-        assert "stock.kylelabs.site/alerts" in body
+        assert "https://stock.example.com/alerts" in body

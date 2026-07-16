@@ -84,12 +84,16 @@ def _build_email_body(
 ) -> str:
     condition_label = _condition_str(alert)
     threshold_str = _threshold_str(alert)
-    alerts_url = f"{get_settings().FRONTEND_URL}/alerts"
-    return f"""<h2>Price Alert Triggered</h2>
+    body = f"""<h2>Price Alert Triggered</h2>
 <p><b>Symbol:</b> {symbol}</p>
 <p><b>Condition:</b> {condition_label}</p>
 <p><b>Current Price:</b> ${current_price:.2f}</p>
 <p><b>Threshold:</b> {threshold_str}</p>
-<p><b>Triggered At:</b> {triggered_at.strftime("%Y-%m-%d %H:%M UTC")}</p>
+<p><b>Triggered At:</b> {triggered_at.strftime("%Y-%m-%d %H:%M UTC")}</p>"""
+    frontend = get_settings().FRONTEND_URL.rstrip("/")
+    if frontend:
+        alerts_url = f"{frontend}/alerts"
+        body += f"""
 <hr>
 <p>View and manage your alerts at <a href="{alerts_url}">{alerts_url}</a>.</p>"""
+    return body
