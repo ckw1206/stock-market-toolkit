@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.4](https://github.com/ckw1206/stock-market-toolkit/compare/v0.20.3...v0.20.4) (2026-07-17)
+
+
+### Bug Fixes
+
+* **alerts:** show matched conditions in triggered list, wire FRONTEND_URL through compose ([#332](https://github.com/ckw1206/stock-market-toolkit/issues/332)) ([2962df1](https://github.com/ckw1206/stock-market-toolkit/commit/2962df1484cafca10d260711c6a2c0906b6e1a03))
+
 ## [0.20.3](https://github.com/ckw1206/stock-market-toolkit/compare/v0.20.2...v0.20.3) (2026-07-16)
 
 
