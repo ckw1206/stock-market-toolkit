@@ -45,6 +45,7 @@ export interface TriggeredAlert {
   condition_type: string;
   trigger_price: number;
   threshold_value: number;
+  conditions_text: string | null;
   triggered_at: string;
   notified: boolean;
   read: boolean;

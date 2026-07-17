@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: stocktoolkit
       POSTGRES_USER: stocktoolkit
-      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:-change-me-in-production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -26,13 +26,14 @@ services:
       - path: .env
         required: true
     environment:
-      DATABASE_URL: postgresql+asyncpg://stocktoolkit:\${POSTGRES_PASSWORD}@postgres:5432/stocktoolkit
-      SECRET_KEY: \${SECRET_KEY}
+      DATABASE_URL: postgresql+asyncpg://stocktoolkit:${POSTGRES_PASSWORD}@postgres:5432/stocktoolkit
+      SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       REFRESH_TOKEN_EXPIRE_DAYS: 7
-      CORS_ORIGINS: \${CORS_ORIGINS}
-      LOG_LEVEL: \${LOG_LEVEL:-INFO}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      FRONTEND_URL: ${FRONTEND_URL:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "8001:8001"
     depends_on:

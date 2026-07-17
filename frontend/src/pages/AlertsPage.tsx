@@ -97,7 +97,7 @@ const TRIGGERED_ALERT_CSV_COLUMNS: { key: keyof TriggeredAlert; label: string }[
 ];
 
 function conditionLabel(t: TFunction, ct: string): string {
-  return CONDITION_VALUES.includes(ct as typeof CONDITION_VALUES[number])
+  return [...CONDITION_VALUES, "multi"].includes(ct)
     ? t(`alerts.conditionTypes.${ct}`)
     : ct;
 }
@@ -1194,10 +1194,15 @@ export default function AlertsPage() {
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {t("alerts.triggeredAt", {
-                          price: fmt(alert.trigger_price),
-                          threshold: fmt(alert.threshold_value),
-                        })}
+                        {alert.conditions_text
+                          ? t("alerts.triggeredAtConditions", {
+                              price: fmt(alert.trigger_price),
+                              conditions: alert.conditions_text.split("\n").join(", "),
+                            })
+                          : t("alerts.triggeredAt", {
+                              price: fmt(alert.trigger_price),
+                              threshold: fmt(alert.threshold_value),
+                            })}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {new Date(alert.triggered_at).toLocaleString()}

@@ -59,6 +59,7 @@
     "combinatorAll": "ALL",
     "combinatorAny": "ANY",
     "triggeredAt": "Triggered at ${{price}} (threshold: ${{threshold}})",
+    "triggeredAtConditions": "Triggered at ${{price}} — {{conditions}}",
     "snoozedUntil": "Snoozed until {{time}}",
     "snoozedBadge": "Snoozed",
     "exportCsv": "Export CSV",
@@ -99,7 +100,8 @@
       "above": "Price Above",
       "below": "Price Below",
       "pct_change_up": "% Up",
-      "pct_change_down": "% Down"
+      "pct_change_down": "% Down",
+      "multi": "Multi-condition"
     },
     "metrics": {
       "price": "Price",
