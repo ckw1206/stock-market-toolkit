@@ -265,9 +265,8 @@ async def _send_notifications(
 
     Shared by the live per-symbol check and the quiet-hours catch-up so both
     paths record delivery attempts identically. For multi-condition alerts,
-    conditions_text describes the matched condition(s); the catch-up path
-    doesn't know which matched, so it falls back to all of the alert's
-    conditions.
+    conditions_text describes the matched condition(s); records created before
+    it was stored fall back to all of the alert's conditions.
     """
     if conditions_text is None and alert.conditions:
         conditions_text = _conditions_text(alert.conditions)
@@ -387,6 +386,7 @@ async def _dispatch_quiet_hours_catchup(db, now: datetime) -> int:
                 triggered_record.trigger_price,
                 triggered_record.threshold_value,
                 triggered_record.triggered_at,
+                conditions_text=triggered_record.conditions_text,
             )
             if notified:
                 triggered_record.notified = True
@@ -520,6 +520,7 @@ async def check_alerts():
                             condition_type=trigger_condition_type,
                             trigger_price=current_price,
                             threshold_value=trigger_threshold,
+                            conditions_text=matched_text,
                             triggered_at=now,
                             notified=False,
                             read=False,

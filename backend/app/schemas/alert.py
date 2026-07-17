@@ -84,6 +84,7 @@ class TriggeredAlertResponse(BaseModel):
     condition_type: str
     trigger_price: float
     threshold_value: float
+    conditions_text: Optional[str] = None
     triggered_at: datetime
     notified: bool
     read: bool

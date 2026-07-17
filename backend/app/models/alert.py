@@ -90,6 +90,9 @@ class TriggeredAlert(Base):
     condition_type = Column(String, nullable=False)
     trigger_price = Column(Float, nullable=False)
     threshold_value = Column(Float, nullable=False)
+    # Human-readable matched condition(s) for multi-condition alerts, where
+    # threshold_value is a meaningless 0.0.
+    conditions_text = Column(Text, nullable=True)
     triggered_at = Column(DateTime(timezone=True), server_default=func.now())
     notified = Column(Boolean, default=False)
     read = Column(Boolean, default=False)

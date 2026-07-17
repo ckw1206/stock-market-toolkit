@@ -59,6 +59,7 @@
     "combinatorAll": "全部",
     "combinatorAny": "任一",
     "triggeredAt": "於 ${{price}} 觸發（門檻值：${{threshold}}）",
+    "triggeredAtConditions": "於 ${{price}} 觸發 — {{conditions}}",
     "snoozedUntil": "已延後至 {{time}}",
     "snoozedBadge": "已延後",
     "exportCsv": "匯出 CSV",
@@ -99,7 +100,8 @@
       "above": "價格高於",
       "below": "價格低於",
       "pct_change_up": "漲幅百分比",
-      "pct_change_down": "跌幅百分比"
+      "pct_change_down": "跌幅百分比",
+      "multi": "多重條件"
     },
     "metrics": {
       "price": "價格",
