@@ -96,6 +96,44 @@ def test_dismiss_is_idempotent(client):
 
 
 @pytest.mark.asyncio
+async def test_accept_when_dismissal_already_exists_still_creates_txn(tmp_path):
+    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path}/test_accept.db")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+
+    user = User(id="u3", email="u3@test.com", username="u3", hashed_password="x")
+
+    async with maker() as session:
+        session.add(PortfolioSuggestionDismissal(
+            user_id="u3", symbol="AAPL", type="dividend",
+            ex_date=date(2026, 6, 10)))
+        await session.commit()
+
+    async def override_db():
+        async with maker() as s:
+            yield s
+            await s.commit()
+
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_current_user] = lambda: user
+    try:
+        with TestClient(app) as c:
+            c.post("/api/portfolio/transactions", json=BUY)
+            r = c.post("/api/portfolio/suggestions/accept",
+                       json={"symbol": "AAPL", "type": "dividend",
+                             "ex_date": "2026-06-10", "amount": "1.75"})
+            assert r.status_code == 201, r.text
+            assert r.json()["transaction"]["type"] == "dividend"
+            txns = c.get("/api/portfolio/transactions").json()
+            symbols = [t["symbol"] for t in txns]
+            assert "AAPL" in symbols, "dismissal conflict should not block ledger txn creation"
+    finally:
+        app.dependency_overrides.clear()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_dismiss_pre_inserted_row_is_idempotent(tmp_path):
     engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path}/test_pre.db")
     async with engine.begin() as conn:

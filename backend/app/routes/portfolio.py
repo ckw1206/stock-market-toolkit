@@ -5,6 +5,7 @@ warn-but-allow). Malformed entries fail Pydantic validation -> 422.
 """
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
@@ -160,14 +161,14 @@ async def accept_suggestion(
     txn = PortfolioTransaction(user_id=current_user.id, **_model_fields(create))
     db.add(txn)
     await db.flush()
-    db.add(PortfolioSuggestionDismissal(
-        user_id=current_user.id, symbol=body.symbol, type=body.type, ex_date=body.ex_date))
     try:
-        await db.commit()
-    except Exception:
-        await db.rollback()
-        db.add(txn)
-        await db.commit()
+        async with db.begin_nested():
+            db.add(PortfolioSuggestionDismissal(
+                user_id=current_user.id, symbol=body.symbol, type=body.type, ex_date=body.ex_date))
+            await db.flush()
+    except IntegrityError:
+        pass  # dismissal already recorded; the accept still stands
+    await db.commit()
     await db.refresh(txn)
     return {"transaction": txn,
             "warnings": await _current_warnings(db, current_user.id)}
@@ -183,6 +184,6 @@ async def dismiss_suggestion(
         user_id=current_user.id, symbol=body.symbol, type=body.type, ex_date=body.ex_date))
     try:
         await db.commit()
-    except Exception:
+    except IntegrityError:
         await db.rollback()
     return {"ok": True}
