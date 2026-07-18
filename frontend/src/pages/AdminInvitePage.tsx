@@ -26,6 +26,8 @@ interface InviteCode {
   expires_at: string;
   is_active: boolean;
   created_at: string;
+  email: string | null;
+  invite_link: string | null;
 }
 
 interface InviteCodeListResponse {
@@ -35,6 +37,21 @@ interface InviteCodeListResponse {
 
 interface CreateInviteCodeRequest {
   expires_in_days: number;
+  email?: string | null;
+}
+
+interface AccountRequest {
+  id: number;
+  email: string;
+  note: string | null;
+  status: "pending" | "approved" | "denied";
+  invite_id: number | null;
+  created_at: string;
+}
+
+interface AccountRequestListResponse {
+  requests: AccountRequest[];
+  total: number;
 }
 
 /* ─── Create Invite Code Dialog ─── */
@@ -45,10 +62,11 @@ function CreateInviteCodeDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  onCreated: (code: string) => void;
+  onCreated: (link: string) => void;
 }) {
   const { t } = useTranslation();
   const [expiresInDays, setExpiresInDays] = useState("7");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -65,14 +83,14 @@ function CreateInviteCodeDialog({
       const res = await fetch(API + "/api/admin/invite-codes", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token") ?? ""}` },
-        body: JSON.stringify({ expires_in_days: days } as CreateInviteCodeRequest),
+        body: JSON.stringify({ expires_in_days: days, email: email || null } as CreateInviteCodeRequest),
       });
       if (!res.ok) {
         const data = await res.json() as { detail?: string };
         throw new Error(data.detail || t("adminInvite.errors.create"));
       }
       const data = await res.json() as InviteCode;
-      onCreated(data.code);
+      onCreated(data.invite_link ?? data.code);
       onClose();
     } catch (err: unknown) {
       setError((err as Error).message || t("adminInvite.errors.create"));
@@ -107,6 +125,17 @@ function CreateInviteCodeDialog({
                 {t("adminInvite.form.expiresHint")}
               </p>
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="invite-email">{t("adminInvite.form.emailLabel")}</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+              <p className="text-xs text-muted-foreground">{t("adminInvite.form.emailHint")}</p>
+            </div>
             {error && (
               <p className="text-sm text-destructive">{error}</p>
             )}
@@ -139,6 +168,127 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
+/* ─── Pending Account Requests ─── */
+function RequestsSection() {
+  const { t } = useTranslation();
+  const [requests, setRequests] = useState<AccountRequest[]>([]);
+  const [approvedLink, setApprovedLink] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem("access_token") ?? ""}` });
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(API + "/api/admin/account-requests", { headers: authHeader() });
+      if (!res.ok) return;
+      const data = await res.json() as AccountRequestListResponse;
+      setRequests(data.requests);
+    } catch { /* section is best-effort; invite list below still works */ }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const handleApprove = async (id: number) => {
+    setError("");
+    try {
+      const res = await fetch(API + `/api/admin/account-requests/${id}/approve`, {
+        method: "POST",
+        headers: authHeader(),
+      });
+      if (!res.ok) {
+        const data = await res.json() as { detail?: string };
+        throw new Error(data.detail);
+      }
+      const data = await res.json() as { invite_link: string; email_sent: boolean };
+      setApprovedLink(data.invite_link);
+      void load();
+    } catch (err: unknown) {
+      setError((err as Error).message || t("adminInvite.requests.errors.approve"));
+    }
+  };
+
+  const handleDeny = async (id: number) => {
+    if (!confirm(t("adminInvite.requests.confirm.deny"))) return;
+    setError("");
+    try {
+      const res = await fetch(API + `/api/admin/account-requests/${id}/deny`, {
+        method: "POST",
+        headers: authHeader(),
+      });
+      if (!res.ok) {
+        const data = await res.json() as { detail?: string };
+        throw new Error(data.detail);
+      }
+      void load();
+    } catch (err: unknown) {
+      setError((err as Error).message || t("adminInvite.requests.errors.deny"));
+    }
+  };
+
+  const pending = requests.filter(r => r.status === "pending");
+  if (requests.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <h2 className="mb-3 text-lg font-medium">
+        {t("adminInvite.requests.title")}
+        {pending.length > 0 && (
+          <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">{pending.length}</span>
+        )}
+      </h2>
+      {error && (
+        <Card className="mb-3 border-destructive/40 bg-destructive/10">
+          <CardContent className="py-3 text-sm text-destructive">{error}</CardContent>
+        </Card>
+      )}
+      {approvedLink && (
+        <Card className="mb-3 border-up/40 bg-up/10">
+          <CardContent className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Check className="size-4 text-up shrink-0" />
+              <span className="text-sm font-medium shrink-0">{t("adminInvite.requests.approvedLinkLabel")}</span>
+              <code className="rounded bg-muted px-1.5 py-0.5 text-sm font-mono truncate">{approvedLink}</code>
+            </div>
+            <CopyButton value={approvedLink} />
+          </CardContent>
+        </Card>
+      )}
+      <div className="flex flex-col gap-3">
+        {requests.map(req => (
+          <Card key={req.id} className={req.status !== "pending" ? "opacity-60" : ""}>
+            <CardContent className="flex items-center gap-4 py-4">
+              <div className="flex flex-col gap-1 flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{req.email}</span>
+                  {req.status !== "pending" && (
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
+                      {t(`adminInvite.requests.status.${req.status}`)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-4 text-xs text-muted-foreground">
+                  <span>{t("adminInvite.table.created", { date: new Date(req.created_at).toLocaleDateString() })}</span>
+                  {req.note && <span className="truncate">{req.note}</span>}
+                </div>
+              </div>
+              {req.status === "pending" && (
+                <div className="flex gap-2 shrink-0">
+                  <Button size="sm" onClick={() => handleApprove(req.id)}>
+                    {t("adminInvite.requests.approve")}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleDeny(req.id)}>
+                    {t("adminInvite.requests.deny")}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main Admin Invite Page ─── */
 export default function AdminInvitePage() {
   const { t } = useTranslation();
@@ -146,7 +296,7 @@ export default function AdminInvitePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [newCode, setNewCode] = useState<string | null>(null);
+  const [newLink, setNewLink] = useState<string | null>(null);
 
   const loadCodes = useCallback(async () => {
     setLoading(true);
@@ -191,8 +341,8 @@ export default function AdminInvitePage() {
     }
   };
 
-  const handleCodeCreated = (code: string) => {
-    setNewCode(code);
+  const handleLinkCreated = (link: string) => {
+    setNewLink(link);
     void loadCodes();
   };
 
@@ -225,21 +375,23 @@ export default function AdminInvitePage() {
         </Button>
       </div>
 
+      <RequestsSection />
+
       {error && (
         <Card className="mb-4 border-destructive/40 bg-destructive/10">
           <CardContent className="py-3 text-sm text-destructive">{error}</CardContent>
         </Card>
       )}
 
-      {newCode && (
+      {newLink && (
         <Card className="mb-4 border-up/40 bg-up/10">
           <CardContent className="flex items-center justify-between py-3">
             <div className="flex items-center gap-2">
               <Check className="size-4 text-up" />
               <span className="text-sm font-medium">{t("adminInvite.newCodeLabel")}</span>
-              <code className="rounded bg-muted px-1.5 py-0.5 text-sm font-mono">{newCode}</code>
+              <code className="rounded bg-muted px-1.5 py-0.5 text-sm font-mono">{newLink}</code>
             </div>
-            <CopyButton value={newCode} />
+            <CopyButton value={newLink} />
           </CardContent>
         </Card>
       )}
@@ -261,10 +413,11 @@ export default function AdminInvitePage() {
               <CardContent className="flex items-center gap-4 py-4">
                 <div className="flex flex-col gap-1 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <code className="rounded bg-muted px-2 py-0.5 text-sm font-mono break-all">
-                      {code.code}
+                    <code className="rounded bg-muted px-2 py-0.5 text-sm font-mono truncate max-w-[22rem]" title={code.invite_link ?? code.code}>
+                      {code.invite_link ?? code.code}
                     </code>
-                    <CopyButton value={code.code} />
+                    <CopyButton value={code.invite_link ?? code.code} />
+                    {code.email && <span>{code.email}</span>}
                     {code.used_by && (
                       <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
                         {t("adminInvite.table.used")}
@@ -313,7 +466,7 @@ export default function AdminInvitePage() {
       <CreateInviteCodeDialog
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        onCreated={handleCodeCreated}
+        onCreated={handleLinkCreated}
       />
     </div>
   );

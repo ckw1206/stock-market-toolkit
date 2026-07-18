@@ -12,9 +12,9 @@
     "holdings": "持股"
   },
   "adminInvite": {
-    "title": "邀請碼",
-    "subtitle": "為新使用者註冊產生並管理邀請碼",
-    "generateCode": "產生邀請碼",
+    "title": "邀請管理",
+    "subtitle": "產生邀請連結並審核帳號申請",
+    "generateCode": "產生連結",
     "form": {
       "dialogTitle": "產生邀請碼",
       "dialogDescription": "為新使用者註冊建立新的邀請碼",
@@ -23,12 +23,14 @@
       "cancel": "取消",
       "generating": "產生中…",
       "submit": "產生邀請碼",
-      "validationRange": "到期天數必須介於 1 到 365 天之間"
+      "validationRange": "到期天數必須介於 1 到 365 天之間",
+      "emailLabel": "電子郵件（選填）",
+      "emailHint": "將此邀請與電子郵件地址關聯"
     },
     "copy": {
-      "ariaLabel": "複製邀請碼"
+      "ariaLabel": "複製連結"
     },
-    "newCodeLabel": "新邀請碼：",
+    "newCodeLabel": "新邀請連結：",
     "empty": {
       "message": "尚無邀請碼",
       "action": "產生您的第一個邀請碼"
@@ -49,6 +51,23 @@
       "create": "建立邀請碼失敗",
       "load": "載入邀請碼失敗",
       "deactivate": "停用邀請碼失敗"
+    },
+    "requests": {
+      "title": "帳號申請",
+      "approve": "核准",
+      "deny": "拒絕",
+      "approvedLinkLabel": "邀請連結：",
+      "status": {
+        "approved": "已核准",
+        "denied": "已拒絕"
+      },
+      "confirm": {
+        "deny": "確定拒絕此帳號申請？"
+      },
+      "errors": {
+        "approve": "核准申請失敗",
+        "deny": "拒絕申請失敗"
+      }
     }
   },
   "alerts": {

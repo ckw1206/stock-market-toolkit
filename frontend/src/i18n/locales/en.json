@@ -12,9 +12,9 @@
     "holdings": "Holdings"
   },
   "adminInvite": {
-    "title": "Invitation Codes",
-    "subtitle": "Generate and manage invitation codes for new user registration",
-    "generateCode": "Generate Code",
+    "title": "Invitations",
+    "subtitle": "Generate invite links and review account requests",
+    "generateCode": "Generate Link",
     "form": {
       "dialogTitle": "Generate Invitation Code",
       "dialogDescription": "Create a new invitation code for new user registration",
@@ -23,12 +23,14 @@
       "cancel": "Cancel",
       "generating": "Generating...",
       "submit": "Generate Code",
-      "validationRange": "Expiration must be between 1 and 365 days"
+      "validationRange": "Expiration must be between 1 and 365 days",
+      "emailLabel": "Email (optional)",
+      "emailHint": "Associate this invitation with an email address"
     },
     "copy": {
-      "ariaLabel": "Copy code"
+      "ariaLabel": "Copy link"
     },
-    "newCodeLabel": "New invitation code:",
+    "newCodeLabel": "New invite link:",
     "empty": {
       "message": "No invitation codes yet",
       "action": "Generate your first code"
@@ -49,6 +51,23 @@
       "create": "Failed to create invite code",
       "load": "Failed to load invite codes",
       "deactivate": "Failed to deactivate code"
+    },
+    "requests": {
+      "title": "Account Requests",
+      "approve": "Approve",
+      "deny": "Deny",
+      "approvedLinkLabel": "Invite link:",
+      "status": {
+        "approved": "Approved",
+        "denied": "Denied"
+      },
+      "confirm": {
+        "deny": "Deny this account request?"
+      },
+      "errors": {
+        "approve": "Failed to approve request",
+        "deny": "Failed to deny request"
+      }
     }
   },
   "alerts": {
