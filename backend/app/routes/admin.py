@@ -6,7 +6,7 @@ import secrets
 import json
 from pathlib import Path
 from typing import Optional
-from app.models import User, InviteCode, SmtpSettings
+from app.models import User, InviteCode, SmtpSettings, AccountRequest
 from app.database import get_db
 from app.schemas import (
     InviteCodeCreate,
@@ -20,10 +20,13 @@ from app.schemas import (
     SmtpTestRequest,
     SmtpTestResponse,
     AuditLogListResponse,
+    AccountRequestResponse,
+    AccountRequestListResponse,
+    AccountRequestApproveResponse,
 )
 from app.auth import require_admin
 from app.utils.crypto import encrypt
-from app.services.mailer import send_test_email
+from app.services.mailer import send_test_email, send_email
 from app.services.audit import write_audit, get_audit_logs
 from app.config import get_settings
 
@@ -190,6 +193,114 @@ async def revoke_invite(
         request=request,
     )
     return {"message": "Invitation revoked"}
+
+
+@router.get("/account-requests", response_model=AccountRequestListResponse)
+async def list_account_requests(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """List account requests, newest first. Admin only."""
+    result = await db.execute(
+        select(AccountRequest).order_by(AccountRequest.created_at.desc())
+    )
+    requests = result.scalars().all()
+    return AccountRequestListResponse(
+        requests=[AccountRequestResponse.model_validate(r) for r in requests],
+        total=len(requests),
+    )
+
+
+@router.post("/account-requests/{request_id}/approve", response_model=AccountRequestApproveResponse)
+async def approve_account_request(
+    request_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Approve a pending request: create an invite for its email and return the link.
+    Sends the link by email when SMTP is configured; the link is always returned."""
+    req = await db.get(AccountRequest, request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail="Request is not pending")
+
+    token = secrets.token_urlsafe(32)
+    invite = InviteCode(
+        code=generate_code(),
+        token=token,
+        created_by=current_user.id,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        is_active=True,
+        email=req.email,
+    )
+    db.add(invite)
+    await db.flush()
+
+    req.status = "approved"
+    req.invite_id = invite.id
+    await db.commit()
+
+    invite_link = build_invite_link(token)
+
+    email_sent = False
+    smtp = await db.get(SmtpSettings, 1)
+    if smtp and smtp.host and smtp.from_address:
+        email_sent = await send_email(
+            smtp,
+            to=req.email,
+            subject="Your Stock Market Toolkit invitation",
+            html_body=(
+                "<p>Your account request has been approved.</p>"
+                f'<p><a href="{invite_link}">Click here to create your account</a> '
+                "(link expires in 7 days).</p>"
+            ),
+        )
+
+    await write_audit(
+        db,
+        actor_id=current_user.id,
+        action="account_request.approved",
+        target=req.email,
+        meta={"request_id": request_id, "invite_id": invite.id, "email_sent": email_sent},
+        request=request,
+    )
+
+    return AccountRequestApproveResponse(
+        message="Request approved",
+        invite_link=invite_link,
+        token=token,
+        email_sent=email_sent,
+    )
+
+
+@router.post("/account-requests/{request_id}/deny")
+async def deny_account_request(
+    request_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Deny a pending account request. Admin only."""
+    req = await db.get(AccountRequest, request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail="Request is not pending")
+
+    req.status = "denied"
+    await write_audit(
+        db,
+        actor_id=current_user.id,
+        action="account_request.denied",
+        target=req.email,
+        meta={"request_id": request_id},
+        request=request,
+    )
+    return {"message": "Request denied"}
+
+
 @router.get("/smtp", response_model=SmtpSettingsResponse)
 async def get_smtp_settings(
     db: AsyncSession = Depends(get_db),
