@@ -123,13 +123,13 @@ def replay(transactions) -> LedgerState:
             raw.append((f"sym:{txn.symbol}", order, LedgerWarning(
                 kind="negative_position", trade_date=txn.trade_date,
                 transaction_id=txn.id, symbol=txn.symbol,
-                message=f"{txn.symbol} position is {pos.qty} after this entry",
+                message=f"{txn.symbol} position is {pos.qty:.2f} after this entry",
             )))
         if t in _CASH_TYPES and state.cash.get(cur, ZERO) < ZERO:
             raw.append((f"cash:{cur}", order, LedgerWarning(
                 kind="negative_cash", trade_date=txn.trade_date,
                 transaction_id=txn.id, currency=cur,
-                message=f"{cur} cash is {state.cash[cur]} after this entry",
+                message=f"{cur} cash is {state.cash[cur]:.2f} after this entry",
             )))
 
     # negative_cash is transient: drop it once the currency's balance recovers
