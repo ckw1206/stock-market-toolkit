@@ -102,7 +102,8 @@ export default function HoldingsPage() {
     setEditingId(null);
     setForm({
       ...emptyForm(),
-      type, symbol: h.symbol, price: h.price ?? "",
+      type, symbol: h.symbol,
+      price: h.price != null ? Number(h.price).toFixed(2) : "",
       currency: h.currency,
     });
     setCurrencyTouched(true);
