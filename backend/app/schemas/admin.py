@@ -106,3 +106,32 @@ class SmtpTestRequest(BaseModel):
 class SmtpTestResponse(BaseModel):
     success: bool
     message: str
+
+
+class AccountRequestCreate(BaseModel):
+    email: EmailStr
+    note: Optional[str] = Field(default=None, max_length=1000)
+
+
+class AccountRequestResponse(BaseModel):
+    id: int
+    email: str
+    note: Optional[str] = None
+    status: str
+    invite_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AccountRequestListResponse(BaseModel):
+    requests: list[AccountRequestResponse]
+    total: int
+
+
+class AccountRequestApproveResponse(BaseModel):
+    message: str
+    invite_link: str
+    token: str
+    email_sent: bool
