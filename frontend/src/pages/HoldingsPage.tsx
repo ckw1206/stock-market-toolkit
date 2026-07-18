@@ -393,10 +393,10 @@ export default function HoldingsPage() {
                       </td>
                       <td className="py-2 pr-2">{t(`holdings.form.types.${x.type}`)}</td>
                       <td className="py-2 pr-2">{x.symbol ?? "—"}</td>
-                      <td className="py-2 pr-2">{x.qty ?? "—"}</td>
-                      <td className="py-2 pr-2">{x.price ?? "—"}</td>
-                      <td className="py-2 pr-2">{x.amount ?? "—"}</td>
-                      <td className="py-2 pr-2">{x.fee}</td>
+                      <td className="py-2 pr-2">{fmt(num(x.qty))}</td>
+                      <td className="py-2 pr-2">{fmt(num(x.price))}</td>
+                      <td className="py-2 pr-2">{fmt(num(x.amount))}</td>
+                      <td className="py-2 pr-2">{fmt(num(x.fee))}</td>
                       <td className="py-2 pr-2">{x.currency}</td>
                       <td className="py-2 pr-2 text-right">
                         <Button variant="ghost" size="sm" onClick={() => openEdit(x)}>
