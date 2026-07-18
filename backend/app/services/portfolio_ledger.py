@@ -7,9 +7,15 @@ deletes can never leave stale state. Numeric columns arrive as strings
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import date
 from decimal import Decimal
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.portfolio import PortfolioTransaction
+from app.services.paper_trading import get_latest_price
 
 ZERO = Decimal("0")
 
@@ -128,3 +134,69 @@ def replay(transactions) -> LedgerState:
 
     state.warnings = [w for scope, o, w in raw if o > last_adjust.get(scope, -1)]
     return state
+
+
+async def load_transactions(db: AsyncSession, user_id: str) -> list[PortfolioTransaction]:
+    result = await db.execute(
+        select(PortfolioTransaction).where(PortfolioTransaction.user_id == user_id)
+    )
+    return list(result.scalars().all())
+
+
+def shares_on(transactions, symbol: str, on_date: date) -> Decimal:
+    """Shares of `symbol` held going into `on_date` (you must own before the
+    ex-date to be entitled — same-day entries are excluded)."""
+    prior = [t for t in transactions if t.trade_date < on_date]
+    pos = replay(prior).positions.get(symbol)
+    return pos.qty if pos else ZERO
+
+
+def warnings_payload(state: LedgerState) -> list[dict]:
+    return [asdict(w) for w in state.warnings]
+
+
+def _blank_totals() -> dict:
+    return {"cash": ZERO, "market_value": ZERO, "unrealized_pnl": ZERO,
+            "realized_pnl": ZERO, "dividends": ZERO, "market_value_complete": True}
+
+
+async def build_summary(db: AsyncSession, user_id: str) -> dict:
+    txns = await load_transactions(db, user_id)
+    state = replay(txns)
+
+    holdings: list[dict] = []
+    for symbol in sorted(state.positions):
+        pos = state.positions[symbol]
+        if pos.qty == ZERO and pos.realized_pnl == ZERO and pos.dividends == ZERO:
+            continue
+        live = market_value = unrealized = None
+        if pos.qty != ZERO:
+            try:
+                live = Decimal(str(await get_latest_price(symbol)))
+                market_value = live * pos.qty
+                unrealized = (live - (pos.avg_cost or ZERO)) * pos.qty
+            except Exception:
+                live = market_value = unrealized = None
+        holdings.append({
+            "symbol": symbol, "currency": pos.currency, "qty": pos.qty,
+            "avg_cost": pos.avg_cost, "price": live,
+            "market_value": market_value, "unrealized_pnl": unrealized,
+            "realized_pnl": pos.realized_pnl, "dividends": pos.dividends,
+        })
+
+    currencies: dict[str, dict] = {}
+    for cur, cash in state.cash.items():
+        currencies.setdefault(cur, _blank_totals())["cash"] = cash
+    for h in holdings:
+        c = currencies.setdefault(h["currency"], _blank_totals())
+        c["realized_pnl"] += h["realized_pnl"]
+        c["dividends"] += h["dividends"]
+        if h["market_value"] is None:
+            if h["qty"] != ZERO:
+                c["market_value_complete"] = False
+        else:
+            c["market_value"] += h["market_value"]
+            c["unrealized_pnl"] += h["unrealized_pnl"]
+
+    return {"currencies": currencies, "holdings": holdings,
+            "warnings": warnings_payload(state)}
