@@ -71,6 +71,8 @@ async def build_suggestions(db: AsyncSession, user_id: str) -> dict:
                 "ratio": Decimal(str(ratio)), "currency": derive_currency(symbol),
             })
 
-    suggestions.sort(key=lambda s: (s["ex_date"], s["symbol"]), reverse=True)
+    suggestions.sort(key=lambda s: s["symbol"])
+    suggestions.sort(key=lambda s: s["ex_date"], reverse=True)
     return {"suggestions": suggestions, "degraded": bool(degraded_symbols),
             "degraded_symbols": degraded_symbols}
+

@@ -35,10 +35,26 @@ def _mock_provider(dividends=None, splits=None, error=False):
         mock.get_dividends.side_effect = RuntimeError("All providers failed")
         mock.get_splits.side_effect = RuntimeError("All providers failed")
     else:
-        mock.get_dividends.return_value = dividends if dividends is not None \
-            else pd.Series(dtype=float)
-        mock.get_splits.return_value = splits if splits is not None \
-            else pd.Series(dtype=float)
+        if dividends is not None:
+            mock.get_dividends.return_value = dividends
+            mock.get_splits.return_value = splits if splits is not None \
+                else pd.Series(dtype=float)
+        elif splits is not None:
+            mock.get_dividends.return_value = pd.Series(dtype=float)
+            mock.get_splits.return_value = splits
+        else:
+            div_aapl = pd.Series(
+                [0.1, 0.2],
+                index=[pd.Timestamp("2026-06-10"), pd.Timestamp("2026-06-20")],
+            )
+            div_zzzz = pd.Series(
+                [0.1, 0.2],
+                index=[pd.Timestamp("2026-06-10"), pd.Timestamp("2026-06-20")],
+            )
+            def div_side_effect(symbol):
+                return div_aapl if symbol == "AAPL" else div_zzzz
+            mock.get_dividends.side_effect = div_side_effect
+            mock.get_splits.return_value = pd.Series(dtype=float)
     return patch("app.services.portfolio_suggestions.fundamentals_provider", mock)
 
 
@@ -113,3 +129,21 @@ async def test_provider_failure_degrades_not_raises(db_session):
     assert out["degraded"] is True
     assert out["degraded_symbols"] == ["AAPL"]
     assert out["suggestions"] == []
+
+
+@pytest.mark.asyncio
+async def test_sort_order_ex_date_desc_then_symbol_asc(db_session):
+    db_session.add(_buy(symbol="ZZZZ", trade_date=date(2026, 1, 5)))
+    db_session.add(_buy(symbol="AAPL", trade_date=date(2026, 1, 5)))
+    await db_session.commit()
+    with _mock_provider(dividends=pd.Series(
+        [0.1, 0.2],
+        index=[pd.Timestamp("2026-06-10"), pd.Timestamp("2026-06-20")],
+    )):
+        out = await build_suggestions(db_session, "u1")
+    assert out["degraded"] is False
+    symbols = [s["symbol"] for s in out["suggestions"]]
+    dates  = [s["ex_date"] for s in out["suggestions"]]
+    assert dates  == [date(2026, 6, 20), date(2026, 6, 20), date(2026, 6, 10), date(2026, 6, 10)]
+    assert symbols == ["AAPL", "ZZZZ", "AAPL", "ZZZZ"]
+
