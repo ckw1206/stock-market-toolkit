@@ -69,6 +69,7 @@ export default function HoldingsPage() {
     }
   }, [t]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- refresh() non-critical state update for data fetch
   useEffect(() => { refresh(); }, []);
 
   const flaggedIds = useMemo(
