@@ -6,7 +6,7 @@ from sqlalchemy import select, func
 from datetime import datetime, timezone
 import uuid
 import secrets
-from app.models import User, InviteCode
+from app.models import User, InviteCode, AccountRequest
 from app.database import get_db
 from app.schemas import (
     UserRegister,
@@ -14,6 +14,7 @@ from app.schemas import (
     TokenResponse,
     RefreshRequest,
     UserResponse,
+    AccountRequestCreate,
 )
 from app.auth import (
     hash_password,
@@ -85,6 +86,42 @@ async def register(data: UserRegister, request: Request, db: AsyncSession = Depe
     await db.commit()
     await db.refresh(user)
     return user
+
+
+@router.post("/request-account", status_code=200)
+async def request_account(
+    data: AccountRequestCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public: ask an admin for an account. Always returns the same generic
+    response so the endpoint can't be used to enumerate emails."""
+    generic = {"message": "Request received. An administrator will review it."}
+
+    existing_user = await db.execute(select(User).where(User.email == data.email))
+    if existing_user.scalar_one_or_none():
+        return generic
+
+    pending = await db.execute(
+        select(AccountRequest).where(
+            AccountRequest.email == data.email,
+            AccountRequest.status == "pending",
+        )
+    )
+    if pending.scalar_one_or_none():
+        return generic
+
+    req = AccountRequest(email=data.email, note=data.note)
+    db.add(req)
+    await db.flush()
+    await write_audit(
+        db,
+        actor_id=None,
+        action="account_request.created",
+        target=data.email,
+        request=request,
+    )
+    return generic
 
 
 @router.post("/login", response_model=TokenResponse)
