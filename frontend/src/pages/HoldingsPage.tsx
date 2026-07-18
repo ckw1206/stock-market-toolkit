@@ -62,7 +62,6 @@ export default function HoldingsPage() {
       setTxns(list);
       setSuggestions(sug.suggestions);
       setDegradedSymbols(sug.degraded_symbols);
-      setShowWarnings(true);
     } catch {
       toast.error(t("holdings.toast.loadFailed"));
     } finally {
@@ -232,19 +231,23 @@ export default function HoldingsPage() {
         ))}
       </div>
 
-      {showWarnings && (summary?.warnings.length ?? 0) > 0 && (
+      {(summary?.warnings.length ?? 0) > 0 && (
         <div className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="font-medium">{t("holdings.warnings.title")}</span>
-            <Button variant="ghost" size="sm" onClick={() => setShowWarnings(false)}>
-              {t("holdings.warnings.hide")}
+          <div className="flex items-center justify-between">
+            <span className="font-medium">
+              {t("holdings.warnings.title")} ({summary!.warnings.length})
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => setShowWarnings((v) => !v)}>
+              {showWarnings ? t("holdings.warnings.hide") : t("holdings.warnings.show")}
             </Button>
           </div>
-          <ul className="list-disc pl-5">
-            {summary!.warnings.map((w, i) => (
-              <li key={i}>{w.trade_date}: {w.message}</li>
-            ))}
-          </ul>
+          {showWarnings && (
+            <ul className="mt-1 list-disc pl-5">
+              {summary!.warnings.map((w, i) => (
+                <li key={i}>{w.trade_date}: {w.message}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

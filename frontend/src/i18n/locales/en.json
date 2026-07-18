@@ -755,7 +755,8 @@
     "incomplete": "some quotes unavailable",
     "warnings": {
       "title": "Ledger warnings",
-      "hide": "Hide"
+      "hide": "Hide",
+      "show": "Show"
     },
     "suggestions": {
       "banner": "{{count}} pending corporate action(s) from Yahoo",

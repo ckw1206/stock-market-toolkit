@@ -755,7 +755,8 @@
     "incomplete": "部分報價無法取得",
     "warnings": {
       "title": "帳本警告",
-      "hide": "隱藏"
+      "hide": "隱藏",
+      "show": "顯示"
     },
     "suggestions": {
       "banner": "{{count}} 筆待確認的公司行動（來自 Yahoo）",
