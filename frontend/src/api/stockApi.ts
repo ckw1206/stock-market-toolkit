@@ -1,13 +1,13 @@
 import axios from "axios";
 import type { StockData, Indicators, StockInfo, Fundamentals, DividendData, NewsData } from "../types";
 
-const API = import.meta.env.VITE_API_URL || "";
+export const API = import.meta.env.VITE_API_URL || "";
 
-function getToken(): string | null {
+export function getToken(): string | null {
   return localStorage.getItem("access_token");
 }
 
-function authHeaders() {
+export function authHeaders() {
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }

@@ -12,6 +12,7 @@ from .fundamentals import FinancialStatement, Dividend, SymbolScore, MonthlyReve
 from .admin import InviteCode, JobRun, SmtpSettings, AuditLog
 from .signals import SignalScan, ScanResult, MarketBreadth
 from .paper import PaperPortfolio, PaperTrade
+from app.models.portfolio import PortfolioSuggestionDismissal, PortfolioTransaction
 
 __all__ = [
     "Base",
@@ -35,4 +36,6 @@ __all__ = [
     "MarketBreadth",
     "PaperPortfolio",
     "PaperTrade",
+    "PortfolioTransaction",
+    "PortfolioSuggestionDismissal",
 ]

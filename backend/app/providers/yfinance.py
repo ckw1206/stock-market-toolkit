@@ -219,6 +219,9 @@ class YFinanceFundamentalsProvider:
     def dividends(self, symbol: str) -> pd.Series:
         return yf.Ticker(symbol.upper()).dividends
 
+    def splits(self, symbol: str) -> pd.Series:
+        return yf.Ticker(symbol.upper()).splits
+
     async def get_fundamentals_dict(self, symbol: str) -> dict:
         """Return ``{current: dict, prior: dict}`` with canonical field names.
 
@@ -277,5 +280,13 @@ class YFinanceFundamentalsProvider:
 
         async def loader() -> pd.Series:
             return await asyncio.to_thread(self.dividends, symbol)
+
+        return await cached(key, self.FUNDAMENTALS_TTL, loader)
+
+    async def get_splits(self, symbol: str) -> pd.Series:
+        key = cache_key("splits", symbol)
+
+        async def loader() -> pd.Series:
+            return await asyncio.to_thread(self.splits, symbol)
 
         return await cached(key, self.FUNDAMENTALS_TTL, loader)
