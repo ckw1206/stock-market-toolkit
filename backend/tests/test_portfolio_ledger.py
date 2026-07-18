@@ -125,14 +125,26 @@ def test_decimal_precision_no_float_drift():
 def test_negative_cash_and_position_warnings():
     state = replay([
         txn("buy", "2026-01-05", symbol="AAPL", qty="10", price="100"),   # cash -1000
-        txn("sell", "2026-01-06", symbol="AAPL", qty="15", price="100"),  # pos -5
+        txn("sell", "2026-01-06", symbol="AAPL", qty="15", price="50"),   # pos -5, cash -250
     ])
+    assert state.cash["USD"] == Decimal("-250")  # ends negative -> warning kept
     kinds = {w.kind for w in state.warnings}
     assert "negative_cash" in kinds
     assert "negative_position" in kinds
     neg_pos = next(w for w in state.warnings if w.kind == "negative_position")
     assert neg_pos.symbol == "AAPL"
     assert neg_pos.trade_date == date(2026, 1, 6)
+
+
+def test_negative_cash_cleared_when_balance_recovers():
+    # Buy with no starting cash, then sell higher: the balance ends positive,
+    # so the transient negative-cash warning is suppressed.
+    state = replay([
+        txn("buy", "2026-05-02", symbol="AAPL", qty="10", price="54"),    # cash -540
+        txn("sell", "2026-06-01", symbol="AAPL", qty="10", price="67.5"),  # cash +135
+    ])
+    assert state.cash["USD"] == Decimal("135")
+    assert not any(w.kind == "negative_cash" for w in state.warnings)
 
 
 def test_adjust_position_overrides_and_resets_reporting():

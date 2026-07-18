@@ -132,7 +132,13 @@ def replay(transactions) -> LedgerState:
                 message=f"{cur} cash is {state.cash[cur]} after this entry",
             )))
 
-    state.warnings = [w for scope, o, w in raw if o > last_adjust.get(scope, -1)]
+    # negative_cash is transient: drop it once the currency's balance recovers
+    # to >= 0 (only a still-negative final balance is worth flagging).
+    state.warnings = [
+        w for scope, o, w in raw
+        if o > last_adjust.get(scope, -1)
+        and not (w.kind == "negative_cash" and state.cash.get(w.currency, ZERO) >= ZERO)
+    ]
     return state
 
 
