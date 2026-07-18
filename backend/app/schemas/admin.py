@@ -19,6 +19,7 @@ class InviteCodeResponse(BaseModel):
     created_at: Optional[datetime] = None
     email: Optional[str] = None
     token: Optional[str] = None
+    invite_link: Optional[str] = None
 
     class Config:
         from_attributes = True

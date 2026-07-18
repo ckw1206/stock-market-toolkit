@@ -25,6 +25,7 @@ from app.auth import require_admin
 from app.utils.crypto import encrypt
 from app.services.mailer import send_test_email
 from app.services.audit import write_audit, get_audit_logs
+from app.config import get_settings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -32,6 +33,12 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 def generate_code() -> str:
     """Generate a secure random invite code."""
     return secrets.token_urlsafe(16)
+
+
+def build_invite_link(token: str) -> str:
+    """Full registration link for an invite token; relative if FRONTEND_URL unset."""
+    base = get_settings().FRONTEND_URL.rstrip("/")
+    return f"{base}/register?token={token}"
 
 
 @router.post("/invite-codes", response_model=InviteCodeResponse, status_code=201)
@@ -63,7 +70,9 @@ async def create_invite_code(
         meta={"expires_in_days": data.expires_in_days, "has_email": bool(data.email)},
         request=request,
     )
-    return invite
+    resp = InviteCodeResponse.model_validate(invite)
+    resp.invite_link = build_invite_link(invite.token)
+    return resp
 
 
 @router.get("/invite-codes", response_model=InviteCodeListResponse)
@@ -75,10 +84,14 @@ async def list_invite_codes(
     result = await db.execute(select(InviteCode).order_by(InviteCode.created_at.desc()))
     codes = result.scalars().all()
 
-    return InviteCodeListResponse(
-        codes=[InviteCodeResponse.model_validate(c) for c in codes],
-        total=len(codes),
-    )
+    items = []
+    for c in codes:
+        item = InviteCodeResponse.model_validate(c)
+        if c.token:
+            item.invite_link = build_invite_link(c.token)
+        items.append(item)
+
+    return InviteCodeListResponse(codes=items, total=len(codes))
 
 
 @router.delete("/invite-codes/{code_id}", status_code=204)
@@ -131,7 +144,7 @@ async def send_invite(
     await db.commit()
     await db.refresh(invite)
 
-    invite_link = f"/register?token={token}"
+    invite_link = build_invite_link(token)
 
     await write_audit(
         db,
