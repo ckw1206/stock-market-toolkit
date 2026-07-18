@@ -158,7 +158,7 @@ export default function HoldingsPage() {
       await acceptSuggestion({
         symbol: s.symbol, type: s.type, ex_date: s.ex_date,
         ...(s.type === "dividend"
-          ? { amount: acceptAmounts[sugKey(s)] ?? s.gross_amount ?? "0" }
+          ? { amount: acceptAmounts[sugKey(s)] || s.gross_amount || "0" }
           : { ratio: s.ratio ?? "1" }),
       });
       toast.success(t("holdings.toast.accepted"));

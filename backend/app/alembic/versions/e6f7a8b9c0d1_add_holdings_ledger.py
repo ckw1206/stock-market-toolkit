@@ -31,8 +31,8 @@ def upgrade() -> None:
         sa.Column("fee", sa.String(), nullable=False, server_default="0"),
         sa.Column("currency", sa.String(), nullable=False),
         sa.Column("note", sa.String(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
     op.create_index(
         "ix_portfolio_transactions_user_id", "portfolio_transactions", ["user_id"]

@@ -749,8 +749,8 @@
     "title": "持股",
     "cash": "現金",
     "marketValue": "市值",
-    "unrealizedPnl": "未實現搅權",
-    "realizedPnl": "已實現搅權",
+    "unrealizedPnl": "未實現損益",
+    "realizedPnl": "已實現損益",
     "dividends": "股息",
     "incomplete": "部分報價無法取得",
     "warnings": {
@@ -765,7 +765,7 @@
       "dividend": "股息",
       "split": "分割",
       "sharesHeld": "{{date}} 持有 {{shares}} 股",
-      "amountLabel": "實收金額（可依扣纳調整）",
+      "amountLabel": "實收金額（可依扣繳調整）",
       "accept": "接受",
       "dismiss": "忽略",
       "empty": "沒有待確認的建議"
@@ -777,8 +777,8 @@
       "avgCost": "平均成本",
       "price": "現價",
       "marketValue": "市值",
-      "unrealizedPnl": "未實現搅權",
-      "realizedPnl": "已實現搅權",
+      "unrealizedPnl": "未實現損益",
+      "realizedPnl": "已實現損益",
       "dividends": "股息",
       "empty": "尚無持股 — 請先在下方新增交易"
     },
@@ -795,10 +795,10 @@
       "qty": "股數",
       "price": "價格",
       "amount": "金額",
-      "fee": "手繳費",
+      "fee": "手續費",
       "currency": "幣別",
       "note": "備註",
-      "flagged": "此笔紀錄造成歷史不一致",
+      "flagged": "此筆紀錄造成歷史不一致",
       "empty": "尚無交易"
     },
     "form": {
@@ -807,7 +807,7 @@
       "type": "類型",
       "adjustVariant": "校正對象",
       "adjustPosition": "持股",
-      "adjustCash": "現金每額",
+      "adjustCash": "現金餘額",
       "date": "日期",
       "symbol": "代號",
       "qty": "數量",
@@ -815,7 +815,7 @@
       "price": "每股價格",
       "avgCost": "平均成本",
       "amount": "金額",
-      "fee": "手繳費",
+      "fee": "手續費",
       "currency": "幣別",
       "note": "備註",
       "cancel": "取消",
@@ -836,7 +836,7 @@
         "priceInvalid": "價格必須大於等於 0",
         "amountRequired": "請輸入金額",
         "amountPositive": "金額必須大於 0",
-        "feeInvalid": "手繳費必須大於等於 0"
+        "feeInvalid": "手續費必須大於等於 0"
       }
     },
     "toast": {
