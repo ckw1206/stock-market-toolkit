@@ -11,7 +11,8 @@ import {
   acceptSuggestion, createHoldingsTxn, deleteHoldingsTxn, dismissSuggestion,
   getHoldingsSuggestions, getHoldingsSummary, listHoldingsTxns,
   updateHoldingsTxn,
-  type HoldingsSummary, type HoldingsTxn, type Suggestion, type TxnPayload,
+  type Holding, type HoldingsSummary, type HoldingsTxn, type Suggestion,
+  type TxnPayload,
 } from "@/api/holdingsApi";
 import {
   deriveCurrency, fieldsForType, validateTransaction,
@@ -94,6 +95,17 @@ export default function HoldingsPage() {
     setEditingId(null);
     setForm(emptyForm());
     setCurrencyTouched(false);
+    setFormOpen(true);
+  };
+
+  const openQuickTrade = (h: Holding, type: "buy" | "sell") => {
+    setEditingId(null);
+    setForm({
+      ...emptyForm(),
+      type, symbol: h.symbol, price: h.price ?? "",
+      currency: h.currency,
+    });
+    setCurrencyTouched(true);
     setFormOpen(true);
   };
 
@@ -285,6 +297,7 @@ export default function HoldingsPage() {
                     <th className="py-2 pr-2">{t("holdings.holdingsTable.unrealizedPnl")}</th>
                     <th className="py-2 pr-2">{t("holdings.holdingsTable.realizedPnl")}</th>
                     <th className="py-2 pr-2">{t("holdings.holdingsTable.dividends")}</th>
+                    <th className="py-2 pr-2" />
                   </tr>
                 </thead>
                 <tbody>
@@ -308,6 +321,14 @@ export default function HoldingsPage() {
                         </td>
                         <td className="py-2 pr-2">{fmt(num(h.realized_pnl))}</td>
                         <td className="py-2 pr-2">{fmt(num(h.dividends))}</td>
+                        <td className="py-2 pr-2 whitespace-nowrap text-right">
+                          <Button variant="ghost" size="sm" onClick={() => openQuickTrade(h, "buy")}>
+                            {t("holdings.form.types.buy")}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => openQuickTrade(h, "sell")}>
+                            {t("holdings.form.types.sell")}
+                          </Button>
+                        </td>
                       </tr>
                     );
                   })}
