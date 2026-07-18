@@ -130,22 +130,6 @@ async def get_summary(
     return await build_summary(db, current_user.id)
 
 
-async def _ensure_dismissal(
-    db: AsyncSession, user_id: str, symbol: str, type_: str, ex_date
-) -> None:
-    result = await db.execute(
-        select(PortfolioSuggestionDismissal).where(
-            PortfolioSuggestionDismissal.user_id == user_id,
-            PortfolioSuggestionDismissal.symbol == symbol,
-            PortfolioSuggestionDismissal.type == type_,
-            PortfolioSuggestionDismissal.ex_date == ex_date,
-        )
-    )
-    if result.scalars().first() is None:
-        db.add(PortfolioSuggestionDismissal(
-            user_id=user_id, symbol=symbol, type=type_, ex_date=ex_date))
-
-
 @router.get("/suggestions", response_model=SuggestionsOut)
 async def get_suggestions(
     current_user: User = Depends(get_current_user),
@@ -175,8 +159,15 @@ async def accept_suggestion(
         )
     txn = PortfolioTransaction(user_id=current_user.id, **_model_fields(create))
     db.add(txn)
-    await _ensure_dismissal(db, current_user.id, body.symbol, body.type, body.ex_date)
-    await db.commit()
+    await db.flush()
+    db.add(PortfolioSuggestionDismissal(
+        user_id=current_user.id, symbol=body.symbol, type=body.type, ex_date=body.ex_date))
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        db.add(txn)
+        await db.commit()
     await db.refresh(txn)
     return {"transaction": txn,
             "warnings": await _current_warnings(db, current_user.id)}
@@ -188,6 +179,10 @@ async def dismiss_suggestion(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _ensure_dismissal(db, current_user.id, body.symbol, body.type, body.ex_date)
-    await db.commit()
+    db.add(PortfolioSuggestionDismissal(
+        user_id=current_user.id, symbol=body.symbol, type=body.type, ex_date=body.ex_date))
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
     return {"ok": True}
