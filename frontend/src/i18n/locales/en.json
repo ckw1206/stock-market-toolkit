@@ -258,7 +258,7 @@
       "histogram": "Histogram"
     },
     "search": {
-      "tickerPromptExample": "Search ticker… AAPL, TSLA",
+      "tickerPromptExample": "Search ticker",
       "tickerPlaceholder": "Search ticker…",
       "searching": "Searching…",
       "noMatches": "No matches.",

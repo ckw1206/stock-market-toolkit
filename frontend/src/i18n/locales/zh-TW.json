@@ -258,7 +258,7 @@
       "histogram": "柱狀圖"
     },
     "search": {
-      "tickerPromptExample": "搜尋股票代號… AAPL、TSLA",
+      "tickerPromptExample": "搜尋股票代號",
       "tickerPlaceholder": "搜尋股票代號…",
       "searching": "搜尋中…",
       "noMatches": "無相符結果。",
