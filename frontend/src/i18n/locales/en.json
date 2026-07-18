@@ -16,13 +16,13 @@
     "subtitle": "Generate invite links and review account requests",
     "generateCode": "Generate Link",
     "form": {
-      "dialogTitle": "Generate Invitation Code",
-      "dialogDescription": "Create a new invitation code for new user registration",
+      "dialogTitle": "Generate Invite Link",
+      "dialogDescription": "Create a new invite link for new user registration",
       "expiresLabel": "Expires in (days)",
       "expiresHint": "The code will expire after this many days (1-365)",
       "cancel": "Cancel",
       "generating": "Generating...",
-      "submit": "Generate Code",
+      "submit": "Generate Link",
       "validationRange": "Expiration must be between 1 and 365 days",
       "emailLabel": "Email (optional)",
       "emailHint": "Associate this invitation with an email address"

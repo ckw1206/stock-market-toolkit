@@ -16,13 +16,13 @@
     "subtitle": "產生邀請連結並審核帳號申請",
     "generateCode": "產生連結",
     "form": {
-      "dialogTitle": "產生邀請碼",
-      "dialogDescription": "為新使用者註冊建立新的邀請碼",
+      "dialogTitle": "產生邀請連結",
+      "dialogDescription": "為新使用者註冊建立新的邀請連結",
       "expiresLabel": "到期天數（天）",
       "expiresHint": "邀請碼將在這麼多天後到期（1-365）",
       "cancel": "取消",
       "generating": "產生中…",
-      "submit": "產生邀請碼",
+      "submit": "產生邀請連結",
       "validationRange": "到期天數必須介於 1 到 365 天之間",
       "emailLabel": "電子郵件（選填）",
       "emailHint": "將此邀請與電子郵件地址關聯"

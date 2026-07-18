@@ -111,6 +111,14 @@ async def request_account(
     if pending.scalar_one_or_none():
         return generic
 
+    total_pending = await db.execute(
+        select(func.count()).select_from(AccountRequest).where(
+            AccountRequest.status == "pending"
+        )
+    )
+    if total_pending.scalar_one() >= 100:
+        return generic
+
     req = AccountRequest(email=data.email, note=data.note)
     db.add(req)
     await db.flush()

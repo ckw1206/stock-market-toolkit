@@ -186,7 +186,11 @@ function RequestsSection() {
     } catch { /* section is best-effort; invite list below still works */ }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    (async () => {
+      await load();
+    })();
+  }, [load]);
 
   const handleApprove = async (id: number) => {
     setError("");

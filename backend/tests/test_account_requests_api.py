@@ -49,6 +49,30 @@ async def test_duplicate_pending_request_no_second_row_same_response():
 
 
 @pytest.mark.asyncio
+async def test_request_account_flood_cap_at_100_pending():
+    app, SessionLocal = await make_test_app()
+    try:
+        async with SessionLocal() as db:
+            for i in range(100):
+                db.add(AccountRequest(email=f"flood{i}@test.com", status="pending"))
+            await db.commit()
+
+        async with client_for(app) as client:
+            res = await client.post(
+                "/api/auth/request-account",
+                json={"email": "newcomer@test.com", "note": "let me in"},
+            )
+        assert res.status_code == 200
+        assert res.json()["message"] == GENERIC_MSG
+
+        async with SessionLocal() as db:
+            rows = (await db.execute(select(AccountRequest))).scalars().all()
+        assert len(rows) == 100
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
 async def test_existing_user_email_no_row_same_response():
     app, SessionLocal = await make_test_app()
     try:
