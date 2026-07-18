@@ -42,28 +42,24 @@ async def register(data: UserRegister, request: Request, db: AsyncSession = Depe
             status_code=400, detail="Email or username already registered"
         )
 
-    # Validate invite token if provided
-    if data.invite_token:
-        result = await db.execute(
-            select(InviteCode).where(InviteCode.token == data.invite_token)
-        )
-        invite = result.scalar_one_or_none()
-        if not invite:
-            raise HTTPException(
-                status_code=400, detail="Invalid invitation token"
-            )
-        if not invite.is_active:
-            raise HTTPException(
-                status_code=400, detail="Invitation has been revoked"
-            )
-        if invite.expires_at and invite.expires_at < datetime.now(timezone.utc):
-            raise HTTPException(
-                status_code=400, detail="Invitation token has expired"
-            )
-        if invite.used_by is not None:
-            raise HTTPException(
-                status_code=400, detail="Invitation token has already been used"
-            )
+    if not data.invite_token:
+        raise HTTPException(status_code=400, detail="Invitation required")
+
+    result = await db.execute(
+        select(InviteCode).where(InviteCode.token == data.invite_token)
+    )
+    invite = result.scalar_one_or_none()
+    if not invite:
+        raise HTTPException(status_code=400, detail="Invalid invitation token")
+    if not invite.is_active:
+        raise HTTPException(status_code=400, detail="Invitation has been revoked")
+    expires = invite.expires_at
+    if expires is not None and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires and expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Invitation token has expired")
+    if invite.used_by is not None:
+        raise HTTPException(status_code=400, detail="Invitation token has already been used")
 
     user = User(
         id=str(uuid.uuid4()),
@@ -75,17 +71,16 @@ async def register(data: UserRegister, request: Request, db: AsyncSession = Depe
     db.add(user)
     await db.flush()
 
-    if data.invite_token:
-        invite.used_by = user.id
-        invite.used_at = datetime.now(timezone.utc)
-        await write_audit(
-            db,
-            actor_id=user.id,
-            action="invite.redeemed",
-            target=invite.code,
-            meta={"token": data.invite_token},
-            request=request,
-        )
+    invite.used_by = user.id
+    invite.used_at = datetime.now(timezone.utc)
+    await write_audit(
+        db,
+        actor_id=user.id,
+        action="invite.redeemed",
+        target=invite.code,
+        meta={"token": data.invite_token},
+        request=request,
+    )
 
     await db.commit()
     await db.refresh(user)
