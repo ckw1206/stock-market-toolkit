@@ -18,6 +18,7 @@ import {
   type AdjustVariant, type Currency, type TxnFormInput, type TxnType,
 } from "@/lib/holdings";
 import { fmt } from "@/lib/format";
+import SymbolSearch from "@/components/common/SymbolSearch";
 
 const TYPES: TxnType[] = [
   "buy", "sell", "dividend", "deposit", "withdrawal", "split", "adjust",
@@ -481,8 +482,7 @@ export default function HoldingsPage() {
             {fields.has("symbol") && (
               <div className="space-y-1">
                 <Label className="text-xs">{t("holdings.form.symbol")}</Label>
-                <Input value={form.symbol} className="h-9 text-sm"
-                       onChange={(e) => onSymbolChange(e.target.value)} />
+                <SymbolSearch value={form.symbol} onSearch={onSymbolChange} />
               </div>
             )}
             {fields.has("qty") && (
