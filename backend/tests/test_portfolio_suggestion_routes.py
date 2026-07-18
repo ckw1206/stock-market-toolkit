@@ -5,8 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.auth import get_current_user

@@ -69,7 +69,7 @@ export default function HoldingsPage() {
     }
   }, [t]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { refresh(); }, []);
 
   const flaggedIds = useMemo(
     () => new Set((summary?.warnings ?? []).map((w) => w.transaction_id)),
