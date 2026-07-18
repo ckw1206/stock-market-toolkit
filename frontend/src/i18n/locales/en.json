@@ -8,7 +8,8 @@
     "switchToChinese": "Switch to 中文",
     "switchToEnglish": "Switch to English",
     "screener": "Screener",
-    "portfolio": "Portfolio"
+    "portfolio": "Portfolio",
+    "holdings": "Holdings"
   },
   "adminInvite": {
     "title": "Invitation Codes",
@@ -742,6 +743,109 @@
       "tradeFailed": "Trade failed",
       "undoFailed": "Failed to remove trade",
       "resetFailed": "Failed to reset portfolio"
+    }
+  },
+  "holdings": {
+    "title": "Holdings",
+    "cash": "Cash",
+    "marketValue": "Market value",
+    "unrealizedPnl": "Unrealized P&L",
+    "realizedPnl": "Realized P&L",
+    "dividends": "Dividends",
+    "incomplete": "some quotes unavailable",
+    "warnings": {
+      "title": "Ledger warnings",
+      "hide": "Hide"
+    },
+    "suggestions": {
+      "banner": "{{count}} pending corporate action(s) from Yahoo",
+      "review": "Review",
+      "title": "Suggested entries",
+      "degraded": "Some symbols could not be checked: {{symbols}}",
+      "dividend": "Dividend",
+      "split": "Split",
+      "sharesHeld": "{{shares}} shares on {{date}}",
+      "amountLabel": "Amount received (edit for withholding)",
+      "accept": "Accept",
+      "dismiss": "Dismiss",
+      "empty": "No pending suggestions"
+    },
+    "holdingsTable": {
+      "title": "Current holdings",
+      "symbol": "Symbol",
+      "qty": "Qty",
+      "avgCost": "Avg cost",
+      "price": "Price",
+      "marketValue": "Market value",
+      "unrealizedPnl": "Unrealized P&L",
+      "realizedPnl": "Realized P&L",
+      "dividends": "Dividends",
+      "empty": "No holdings yet — add your first transaction below"
+    },
+    "txns": {
+      "title": "Transactions",
+      "add": "Add transaction",
+      "edit": "Edit",
+      "delete": "Delete",
+      "filterSymbol": "Filter by symbol",
+      "filterType": "All types",
+      "date": "Date",
+      "type": "Type",
+      "symbol": "Symbol",
+      "qty": "Qty",
+      "price": "Price",
+      "amount": "Amount",
+      "fee": "Fee",
+      "currency": "Currency",
+      "note": "Note",
+      "flagged": "This entry makes history inconsistent",
+      "empty": "No transactions"
+    },
+    "form": {
+      "addTitle": "Add transaction",
+      "editTitle": "Edit transaction",
+      "type": "Type",
+      "adjustVariant": "Adjust target",
+      "adjustPosition": "Position",
+      "adjustCash": "Cash balance",
+      "date": "Date",
+      "symbol": "Symbol",
+      "qty": "Quantity",
+      "ratio": "Split ratio (4 = 4-for-1)",
+      "price": "Price per share",
+      "avgCost": "Average cost",
+      "amount": "Amount",
+      "fee": "Fee",
+      "currency": "Currency",
+      "note": "Note",
+      "cancel": "Cancel",
+      "save": "Save",
+      "types": {
+        "buy": "Buy",
+        "sell": "Sell",
+        "dividend": "Dividend",
+        "deposit": "Deposit",
+        "withdrawal": "Withdrawal",
+        "split": "Split",
+        "adjust": "Adjust (checkpoint)"
+      },
+      "errors": {
+        "dateRequired": "Trade date is required",
+        "symbolRequired": "Symbol is required",
+        "qtyPositive": "Quantity must be greater than 0",
+        "priceInvalid": "Price must be 0 or more",
+        "amountRequired": "Amount is required",
+        "amountPositive": "Amount must be greater than 0",
+        "feeInvalid": "Fee must be 0 or more"
+      }
+    },
+    "toast": {
+      "loadFailed": "Failed to load holdings",
+      "saved": "Transaction saved",
+      "deleted": "Transaction deleted",
+      "saveFailed": "Failed to save transaction",
+      "accepted": "Suggestion added to ledger",
+      "dismissed": "Suggestion dismissed"
     }
   }
 }

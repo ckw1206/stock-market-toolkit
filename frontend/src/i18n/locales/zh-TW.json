@@ -8,7 +8,8 @@
     "switchToChinese": "切換至中文",
     "switchToEnglish": "切換至英文",
     "screener": "選股器",
-    "portfolio": "投資組合"
+    "portfolio": "投資組合",
+    "holdings": "持股"
   },
   "adminInvite": {
     "title": "邀請碼",
@@ -742,6 +743,109 @@
       "tradeFailed": "交易失敗",
       "undoFailed": "無法移除交易",
       "resetFailed": "無法重設投資組合"
+    }
+  },
+  "holdings": {
+    "title": "持股",
+    "cash": "現金",
+    "marketValue": "市值",
+    "unrealizedPnl": "未實現搅權",
+    "realizedPnl": "已實現搅權",
+    "dividends": "股息",
+    "incomplete": "部分報價無法取得",
+    "warnings": {
+      "title": "帳本警告",
+      "hide": "隱藏"
+    },
+    "suggestions": {
+      "banner": "{{count}} 筆待確認的公司行動（來自 Yahoo）",
+      "review": "檢視",
+      "title": "建議項目",
+      "degraded": "部分代號無法查詢：{{symbols}}",
+      "dividend": "股息",
+      "split": "分割",
+      "sharesHeld": "{{date}} 持有 {{shares}} 股",
+      "amountLabel": "實收金額（可依扣纳調整）",
+      "accept": "接受",
+      "dismiss": "忽略",
+      "empty": "沒有待確認的建議"
+    },
+    "holdingsTable": {
+      "title": "目前持股",
+      "symbol": "代號",
+      "qty": "股數",
+      "avgCost": "平均成本",
+      "price": "現價",
+      "marketValue": "市值",
+      "unrealizedPnl": "未實現搅權",
+      "realizedPnl": "已實現搅權",
+      "dividends": "股息",
+      "empty": "尚無持股 — 請先在下方新增交易"
+    },
+    "txns": {
+      "title": "交易紀錄",
+      "add": "新增交易",
+      "edit": "編輯",
+      "delete": "刪除",
+      "filterSymbol": "依代號篩選",
+      "filterType": "所有類型",
+      "date": "日期",
+      "type": "類型",
+      "symbol": "代號",
+      "qty": "股數",
+      "price": "價格",
+      "amount": "金額",
+      "fee": "手繳費",
+      "currency": "幣別",
+      "note": "備註",
+      "flagged": "此笔紀錄造成歷史不一致",
+      "empty": "尚無交易"
+    },
+    "form": {
+      "addTitle": "新增交易",
+      "editTitle": "編輯交易",
+      "type": "類型",
+      "adjustVariant": "校正對象",
+      "adjustPosition": "持股",
+      "adjustCash": "現金每額",
+      "date": "日期",
+      "symbol": "代號",
+      "qty": "數量",
+      "ratio": "分割比例（4 = 一拆四）",
+      "price": "每股價格",
+      "avgCost": "平均成本",
+      "amount": "金額",
+      "fee": "手繳費",
+      "currency": "幣別",
+      "note": "備註",
+      "cancel": "取消",
+      "save": "儲存",
+      "types": {
+        "buy": "買入",
+        "sell": "賣出",
+        "dividend": "股息",
+        "deposit": "存入",
+        "withdrawal": "提出",
+        "split": "分割",
+        "adjust": "校正（檢查點）"
+      },
+      "errors": {
+        "dateRequired": "請輸入交易日期",
+        "symbolRequired": "請輸入代號",
+        "qtyPositive": "數量必須大於 0",
+        "priceInvalid": "價格必須大於等於 0",
+        "amountRequired": "請輸入金額",
+        "amountPositive": "金額必須大於 0",
+        "feeInvalid": "手繳費必須大於等於 0"
+      }
+    },
+    "toast": {
+      "loadFailed": "載入持股失敗",
+      "saved": "已儲存交易",
+      "deleted": "已刪除交易",
+      "saveFailed": "儲存交易失敗",
+      "accepted": "建議已加入帳本",
+      "dismissed": "已忽略建議"
     }
   }
 }
