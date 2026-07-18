@@ -499,6 +499,17 @@
     "errors": {
       "passwordTooShort": "密碼長度至少須為 8 個字元",
       "failed": "註冊失敗"
+    },
+    "requestFallback": "改為申請帳號",
+    "request": {
+      "title": "申請帳號",
+      "subtitle": "本站採邀請制註冊。留下您的電子郵件，管理員將審核您的申請。",
+      "noteLabel": "留言（選填）",
+      "notePlaceholder": "告訴管理員您是誰",
+      "submit": "送出申請",
+      "submitting": "送出中…",
+      "received": "已收到申請。管理員審核後將寄送邀請連結給您。",
+      "failed": "申請送出失敗，請再試一次。"
     }
   },
   "settings": {

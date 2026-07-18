@@ -499,6 +499,17 @@
     "errors": {
       "passwordTooShort": "Password must be at least 8 characters",
       "failed": "Registration failed"
+    },
+    "requestFallback": "Request an account instead",
+    "request": {
+      "title": "Request an account",
+      "subtitle": "Registration is invite-only. Leave your email and an admin will review your request.",
+      "noteLabel": "Message (optional)",
+      "notePlaceholder": "Tell the admin who you are",
+      "submit": "Request account",
+      "submitting": "Sending…",
+      "received": "Request received. An administrator will review it and send you an invitation link.",
+      "failed": "Failed to submit request. Please try again."
     }
   },
   "settings": {
