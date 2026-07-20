@@ -40,7 +40,8 @@ def generate_code() -> str:
 
 def build_invite_link(token: str) -> str:
     """Full registration link for an invite token; relative if FRONTEND_URL unset."""
-    base = get_settings().FRONTEND_URL.rstrip("/")
+    settings = get_settings()
+    base = settings.FRONTEND_URL.rstrip("/") if settings.FRONTEND_URL else "http://localhost:3000"
     return f"{base}/register?token={token}"
 
 
