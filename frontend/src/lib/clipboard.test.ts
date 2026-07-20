@@ -26,7 +26,7 @@ describe("copyText", () => {
 
   it("returns true via Clipboard API when available", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
-    (navigator as { clipboard: { writeText: typeof writeText } }).clipboard = { writeText };
+    (navigator as unknown as { clipboard: { writeText: typeof writeText } }).clipboard = { writeText };
     expect(await copyText("hello")).toBe(true);
     expect(writeText).toHaveBeenCalledWith("hello");
   });
@@ -45,7 +45,7 @@ describe("copyText", () => {
   });
 
   it("returns false when Clipboard API rejects and execCommand also fails", async () => {
-    (navigator as { clipboard: { writeText: () => Promise<never> } }).clipboard = {
+    (navigator as unknown as { clipboard: { writeText: () => Promise<never> } }).clipboard = {
       writeText: vi.fn().mockRejectedValue(new Error("denied")),
     };
     document.execCommand = vi.fn().mockReturnValue(false);
@@ -53,7 +53,7 @@ describe("copyText", () => {
   });
 
   it("returns true when Clipboard API rejects but execCommand fallback succeeds", async () => {
-    (navigator as { clipboard: { writeText: () => Promise<never> } }).clipboard = {
+    (navigator as unknown as { clipboard: { writeText: () => Promise<never> } }).clipboard = {
       writeText: vi.fn().mockRejectedValue(new Error("denied")),
     };
     document.execCommand = vi.fn().mockReturnValue(true);
