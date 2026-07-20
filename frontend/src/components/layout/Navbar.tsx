@@ -168,7 +168,7 @@ export default function Navbar() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => navigate("/admin/invites")}>
-                  {t("common.menu.invitationCodes")}
+                  {t("common.menu.invitations")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setChangePasswordOpen(true)}>
                   {t("common.actions.changePassword")}
