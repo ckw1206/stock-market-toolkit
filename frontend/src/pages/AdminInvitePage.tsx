@@ -16,6 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
 import { copyText } from "@/lib/clipboard";
+import { absoluteInviteLink } from "@/lib/invite-link";
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -92,7 +93,7 @@ function CreateInviteCodeDialog({
         throw new Error(data.detail || t("adminInvite.errors.create"));
       }
       const data = await res.json() as InviteCode;
-      onCreated(data.invite_link ?? data.code);
+      onCreated(absoluteInviteLink(data.invite_link ?? data.code));
       onClose();
     } catch (err: unknown) {
       setError((err as Error).message || t("adminInvite.errors.create"));
@@ -210,7 +211,7 @@ function RequestsSection() {
         throw new Error(data.detail);
       }
       const data = await res.json() as { invite_link: string; email_sent: boolean };
-      setApprovedLink(data.invite_link);
+      setApprovedLink(absoluteInviteLink(data.invite_link));
       void load();
     } catch (err: unknown) {
       setError((err as Error).message || t("adminInvite.requests.errors.approve"));
@@ -440,10 +441,10 @@ export default function AdminInvitePage() {
               <CardContent className="flex items-center gap-4 py-4">
                 <div className="flex flex-col gap-1 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <code className="rounded bg-muted px-2 py-0.5 text-sm font-mono truncate max-w-[22rem]" title={code.invite_link ?? code.code}>
-                      {code.invite_link ?? code.code}
+                    <code className="rounded bg-muted px-2 py-0.5 text-sm font-mono truncate max-w-[22rem]" title={absoluteInviteLink(code.invite_link ?? code.code)}>
+                      {absoluteInviteLink(code.invite_link ?? code.code)}
                     </code>
-                    <CopyButton value={code.invite_link ?? code.code} />
+                    <CopyButton value={absoluteInviteLink(code.invite_link ?? code.code)} />
                     {code.email && <span>{code.email}</span>}
                     {code.used_by && (
                       <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
