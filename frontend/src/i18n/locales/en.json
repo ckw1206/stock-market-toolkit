@@ -28,7 +28,9 @@
       "emailHint": "Associate this invitation with an email address"
     },
     "copy": {
-      "ariaLabel": "Copy link"
+      "ariaLabel": "Copy link",
+      "errorTitle": "Copy failed",
+      "errorDescription": "Unable to copy to clipboard. Please try selecting and copying manually."
     },
     "newCodeLabel": "New invite link:",
     "empty": {
@@ -456,7 +458,9 @@
     "copy": {
       "toastTitle": "Copied",
       "toastDescription": "Log entry copied to clipboard",
-      "buttonTitle": "Copy entry as JSON"
+      "buttonTitle": "Copy entry as JSON",
+      "errorTitle": "Copy failed",
+      "errorDescription": "Unable to copy to clipboard. Please try selecting and copying manually."
     },
     "tabs": {
       "system": "System",

@@ -14,6 +14,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/sonner";
+import { copyText } from "@/lib/clipboard";
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -157,9 +159,13 @@ function CopyButton({ value }: { value: string }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    const ok = await copyText(value);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } else {
+      toast.error(t("adminInvite.copy.errorTitle"), { description: t("adminInvite.copy.errorDescription") });
+    }
   };
   return (
     <Button variant="ghost" size="icon" onClick={handleCopy} aria-label={t("adminInvite.copy.ariaLabel")}>

@@ -28,7 +28,9 @@
       "emailHint": "將此邀請與電子郵件地址關聯"
     },
     "copy": {
-      "ariaLabel": "複製連結"
+      "ariaLabel": "複製連結",
+      "errorTitle": "複製失敗",
+      "errorDescription": "無法複製到剪貼簿，請嘗試手動選取並複製。"
     },
     "newCodeLabel": "新邀請連結：",
     "empty": {
@@ -456,7 +458,9 @@
     "copy": {
       "toastTitle": "已複製",
       "toastDescription": "日誌項目已複製到剪貼簿",
-      "buttonTitle": "以 JSON 格式複製項目"
+      "buttonTitle": "以 JSON 格式複製項目",
+      "errorTitle": "複製失敗",
+      "errorDescription": "無法複製到剪貼簿，請嘗試手動選取並複製。"
     },
     "tabs": {
       "system": "系統",
