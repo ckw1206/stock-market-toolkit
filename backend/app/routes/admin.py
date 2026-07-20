@@ -6,7 +6,7 @@ import secrets
 import json
 from pathlib import Path
 from typing import Optional
-from app.models import User, InviteCode, SmtpSettings
+from app.models import User, InviteCode, SmtpSettings, AccountRequest
 from app.database import get_db
 from app.schemas import (
     InviteCodeCreate,
@@ -20,11 +20,15 @@ from app.schemas import (
     SmtpTestRequest,
     SmtpTestResponse,
     AuditLogListResponse,
+    AccountRequestResponse,
+    AccountRequestListResponse,
+    AccountRequestApproveResponse,
 )
 from app.auth import require_admin
 from app.utils.crypto import encrypt
-from app.services.mailer import send_test_email
+from app.services.mailer import send_test_email, send_email
 from app.services.audit import write_audit, get_audit_logs
+from app.config import get_settings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -32,6 +36,15 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 def generate_code() -> str:
     """Generate a secure random invite code."""
     return secrets.token_urlsafe(16)
+
+
+def build_invite_link(token: str) -> str:
+    """Full registration link for an invite token; relative if FRONTEND_URL unset."""
+    settings = get_settings()
+    if not settings.FRONTEND_URL:
+        return f"/register?token={token}"
+    base = settings.FRONTEND_URL.rstrip("/")
+    return f"{base}/register?token={token}"
 
 
 @router.post("/invite-codes", response_model=InviteCodeResponse, status_code=201)
@@ -63,7 +76,9 @@ async def create_invite_code(
         meta={"expires_in_days": data.expires_in_days, "has_email": bool(data.email)},
         request=request,
     )
-    return invite
+    resp = InviteCodeResponse.model_validate(invite)
+    resp.invite_link = build_invite_link(invite.token)
+    return resp
 
 
 @router.get("/invite-codes", response_model=InviteCodeListResponse)
@@ -75,10 +90,14 @@ async def list_invite_codes(
     result = await db.execute(select(InviteCode).order_by(InviteCode.created_at.desc()))
     codes = result.scalars().all()
 
-    return InviteCodeListResponse(
-        codes=[InviteCodeResponse.model_validate(c) for c in codes],
-        total=len(codes),
-    )
+    items = []
+    for c in codes:
+        item = InviteCodeResponse.model_validate(c)
+        if c.token:
+            item.invite_link = build_invite_link(c.token)
+        items.append(item)
+
+    return InviteCodeListResponse(codes=items, total=len(codes))
 
 
 @router.delete("/invite-codes/{code_id}", status_code=204)
@@ -100,6 +119,60 @@ async def deactivate_invite_code(
         actor_id=current_user.id,
         action="invite.revoked",
         target=invite.code,
+        meta={"invite_id": code_id},
+        request=request,
+    )
+    return None
+
+
+@router.delete("/invite-codes/{code_id}/permanent", status_code=204)
+async def permanent_delete_invite_code(
+    code_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Hard-delete an invite code. Only deletable when the link is dead
+    (deactivated or expired) and was never redeemed."""
+    invite = await db.get(InviteCode, code_id)
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invitation code not found")
+
+    now = datetime.now(timezone.utc)
+    expires_at = (
+        invite.expires_at.replace(tzinfo=timezone.utc)
+        if invite.expires_at.tzinfo is None
+        else invite.expires_at
+    )
+    is_expired = expires_at < now
+    is_live = invite.is_active and not is_expired
+    if invite.used_by is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete a redeemed invite code that has been used.",
+        )
+    if is_live:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete an active, unexpired invite code. Deactivate it first.",
+        )
+
+    # Null out invite_id on referencing account requests
+    result = await db.execute(
+        select(AccountRequest).where(AccountRequest.invite_id == code_id)
+    )
+    for ar in result.scalars():
+        ar.invite_id = None
+
+    code_value = invite.code
+    await db.delete(invite)
+    await db.commit()
+
+    await write_audit(
+        db,
+        actor_id=current_user.id,
+        action="invite.deleted",
+        target=code_value,
         meta={"invite_id": code_id},
         request=request,
     )
@@ -131,7 +204,7 @@ async def send_invite(
     await db.commit()
     await db.refresh(invite)
 
-    invite_link = f"/register?token={token}"
+    invite_link = build_invite_link(token)
 
     await write_audit(
         db,
@@ -177,6 +250,114 @@ async def revoke_invite(
         request=request,
     )
     return {"message": "Invitation revoked"}
+
+
+@router.get("/account-requests", response_model=AccountRequestListResponse)
+async def list_account_requests(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """List account requests, newest first. Admin only."""
+    result = await db.execute(
+        select(AccountRequest).order_by(AccountRequest.created_at.desc())
+    )
+    requests = result.scalars().all()
+    return AccountRequestListResponse(
+        requests=[AccountRequestResponse.model_validate(r) for r in requests],
+        total=len(requests),
+    )
+
+
+@router.post("/account-requests/{request_id}/approve", response_model=AccountRequestApproveResponse)
+async def approve_account_request(
+    request_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Approve a pending request: create an invite for its email and return the link.
+    Sends the link by email when SMTP is configured; the link is always returned."""
+    req = await db.get(AccountRequest, request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail="Request is not pending")
+
+    token = secrets.token_urlsafe(32)
+    invite = InviteCode(
+        code=generate_code(),
+        token=token,
+        created_by=current_user.id,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        is_active=True,
+        email=req.email,
+    )
+    db.add(invite)
+    await db.flush()
+
+    req.status = "approved"
+    req.invite_id = invite.id
+    await db.commit()
+
+    invite_link = build_invite_link(token)
+
+    email_sent = False
+    smtp = await db.get(SmtpSettings, 1)
+    if smtp and smtp.host and smtp.from_address:
+        email_sent = await send_email(
+            smtp,
+            to=req.email,
+            subject="Your Stock Market Toolkit invitation",
+            html_body=(
+                "<p>Your account request has been approved.</p>"
+                f'<p><a href="{invite_link}">Click here to create your account</a> '
+                "(link expires in 7 days).</p>"
+            ),
+        )
+
+    await write_audit(
+        db,
+        actor_id=current_user.id,
+        action="account_request.approved",
+        target=req.email,
+        meta={"request_id": request_id, "invite_id": invite.id, "email_sent": email_sent},
+        request=request,
+    )
+
+    return AccountRequestApproveResponse(
+        message="Request approved",
+        invite_link=invite_link,
+        token=token,
+        email_sent=email_sent,
+    )
+
+
+@router.post("/account-requests/{request_id}/deny")
+async def deny_account_request(
+    request_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Deny a pending account request. Admin only."""
+    req = await db.get(AccountRequest, request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail="Request is not pending")
+
+    req.status = "denied"
+    await write_audit(
+        db,
+        actor_id=current_user.id,
+        action="account_request.denied",
+        target=req.email,
+        meta={"request_id": request_id},
+        request=request,
+    )
+    return {"message": "Request denied"}
+
+
 @router.get("/smtp", response_model=SmtpSettingsResponse)
 async def get_smtp_settings(
     db: AsyncSession = Depends(get_db),

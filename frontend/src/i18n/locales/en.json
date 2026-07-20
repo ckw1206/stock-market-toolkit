@@ -12,23 +12,27 @@
     "holdings": "Holdings"
   },
   "adminInvite": {
-    "title": "Invitation Codes",
-    "subtitle": "Generate and manage invitation codes for new user registration",
-    "generateCode": "Generate Code",
+    "title": "Invitations",
+    "subtitle": "Generate invite links and review account requests",
+    "generateCode": "Generate Link",
     "form": {
-      "dialogTitle": "Generate Invitation Code",
-      "dialogDescription": "Create a new invitation code for new user registration",
+      "dialogTitle": "Generate Invite Link",
+      "dialogDescription": "Create a new invite link for new user registration",
       "expiresLabel": "Expires in (days)",
       "expiresHint": "The code will expire after this many days (1-365)",
       "cancel": "Cancel",
       "generating": "Generating...",
-      "submit": "Generate Code",
-      "validationRange": "Expiration must be between 1 and 365 days"
+      "submit": "Generate Link",
+      "validationRange": "Expiration must be between 1 and 365 days",
+      "emailLabel": "Email (optional)",
+      "emailHint": "Associate this invitation with an email address"
     },
     "copy": {
-      "ariaLabel": "Copy code"
+      "ariaLabel": "Copy link",
+      "errorTitle": "Copy failed",
+      "errorDescription": "Unable to copy to clipboard. Please try selecting and copying manually."
     },
-    "newCodeLabel": "New invitation code:",
+    "newCodeLabel": "New invite link:",
     "empty": {
       "message": "No invitation codes yet",
       "action": "Generate your first code"
@@ -40,15 +44,35 @@
       "created": "Created {{date}}",
       "expires": "Expires {{date}}",
       "usedBy": "Used by {{user}}",
-      "deactivateAriaLabel": "Deactivate code"
+      "deactivateAriaLabel": "Deactivate code",
+      "deleteAriaLabel": "Delete code permanently"
     },
     "confirm": {
-      "deactivate": "Deactivate this invitation code?"
+      "deactivate": "Deactivate this invitation code?",
+      "delete": "Permanently delete this invitation code? This cannot be undone."
     },
     "errors": {
       "create": "Failed to create invite code",
       "load": "Failed to load invite codes",
-      "deactivate": "Failed to deactivate code"
+      "deactivate": "Failed to deactivate code",
+      "delete": "Failed to delete invite code"
+    },
+    "requests": {
+      "title": "Account Requests",
+      "approve": "Approve",
+      "deny": "Deny",
+      "approvedLinkLabel": "Invite link:",
+      "status": {
+        "approved": "Approved",
+        "denied": "Denied"
+      },
+      "confirm": {
+        "deny": "Deny this account request?"
+      },
+      "errors": {
+        "approve": "Failed to approve request",
+        "deny": "Failed to deny request"
+      }
     }
   },
   "alerts": {
@@ -285,7 +309,7 @@
     },
     "menu": {
       "logViewer": "Log Viewer",
-      "invitationCodes": "Invitation Codes",
+      "invitations": "Invitations",
       "openNavigation": "Open navigation menu"
     },
     "theme": {
@@ -437,7 +461,9 @@
     "copy": {
       "toastTitle": "Copied",
       "toastDescription": "Log entry copied to clipboard",
-      "buttonTitle": "Copy entry as JSON"
+      "buttonTitle": "Copy entry as JSON",
+      "errorTitle": "Copy failed",
+      "errorDescription": "Unable to copy to clipboard. Please try selecting and copying manually."
     },
     "tabs": {
       "system": "System",
@@ -499,6 +525,17 @@
     "errors": {
       "passwordTooShort": "Password must be at least 8 characters",
       "failed": "Registration failed"
+    },
+    "requestFallback": "Request an account instead",
+    "request": {
+      "title": "Request an account",
+      "subtitle": "Registration is invite-only. Leave your email and an admin will review your request.",
+      "noteLabel": "Message (optional)",
+      "notePlaceholder": "Tell the admin who you are",
+      "submit": "Request account",
+      "submitting": "Sending…",
+      "received": "Request received. An administrator will review it and send you an invitation link.",
+      "failed": "Failed to submit request. Please try again."
     }
   },
   "settings": {

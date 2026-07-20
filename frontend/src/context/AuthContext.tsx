@@ -18,7 +18,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string) => Promise<void>;
+  register: (email: string, username: string, password: string, inviteToken?: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -76,8 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchUser(access_token);
   };
 
-  const register = async (email: string, username: string, password: string) => {
-    await axios.post(`${API}/api/auth/register`, { email, username, password });
+  const register = async (email: string, username: string, password: string, inviteToken?: string) => {
+    await axios.post(`${API}/api/auth/register`, { email, username, password, invite_token: inviteToken });
     await login(email, password);
   };
 

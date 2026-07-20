@@ -64,3 +64,16 @@ class AuditLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     actor = relationship("User", foreign_keys=[actor_id])
+
+
+class AccountRequest(Base):
+    __tablename__ = "account_requests"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String, index=True, nullable=False)
+    note = Column(Text, nullable=True)
+    status = Column(String, nullable=False, default="pending")
+    invite_id = Column(Integer, ForeignKey("invite_codes.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    invite = relationship("InviteCode", foreign_keys=[invite_id])

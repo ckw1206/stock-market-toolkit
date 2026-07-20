@@ -6,7 +6,7 @@ from sqlalchemy import select, func
 from datetime import datetime, timezone
 import uuid
 import secrets
-from app.models import User, InviteCode
+from app.models import User, InviteCode, AccountRequest
 from app.database import get_db
 from app.schemas import (
     UserRegister,
@@ -14,6 +14,7 @@ from app.schemas import (
     TokenResponse,
     RefreshRequest,
     UserResponse,
+    AccountRequestCreate,
 )
 from app.auth import (
     hash_password,
@@ -42,28 +43,24 @@ async def register(data: UserRegister, request: Request, db: AsyncSession = Depe
             status_code=400, detail="Email or username already registered"
         )
 
-    # Validate invite token if provided
-    if data.invite_token:
-        result = await db.execute(
-            select(InviteCode).where(InviteCode.token == data.invite_token)
-        )
-        invite = result.scalar_one_or_none()
-        if not invite:
-            raise HTTPException(
-                status_code=400, detail="Invalid invitation token"
-            )
-        if not invite.is_active:
-            raise HTTPException(
-                status_code=400, detail="Invitation has been revoked"
-            )
-        if invite.expires_at and invite.expires_at < datetime.now(timezone.utc):
-            raise HTTPException(
-                status_code=400, detail="Invitation token has expired"
-            )
-        if invite.used_by is not None:
-            raise HTTPException(
-                status_code=400, detail="Invitation token has already been used"
-            )
+    if not data.invite_token:
+        raise HTTPException(status_code=400, detail="Invitation required")
+
+    result = await db.execute(
+        select(InviteCode).where(InviteCode.token == data.invite_token)
+    )
+    invite = result.scalar_one_or_none()
+    if not invite:
+        raise HTTPException(status_code=400, detail="Invalid invitation token")
+    if not invite.is_active:
+        raise HTTPException(status_code=400, detail="Invitation has been revoked")
+    expires = invite.expires_at
+    if expires is not None and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires and expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Invitation token has expired")
+    if invite.used_by is not None:
+        raise HTTPException(status_code=400, detail="Invitation token has already been used")
 
     user = User(
         id=str(uuid.uuid4()),
@@ -75,21 +72,64 @@ async def register(data: UserRegister, request: Request, db: AsyncSession = Depe
     db.add(user)
     await db.flush()
 
-    if data.invite_token:
-        invite.used_by = user.id
-        invite.used_at = datetime.now(timezone.utc)
-        await write_audit(
-            db,
-            actor_id=user.id,
-            action="invite.redeemed",
-            target=invite.code,
-            meta={"token": data.invite_token},
-            request=request,
-        )
+    invite.used_by = user.id
+    invite.used_at = datetime.now(timezone.utc)
+    await write_audit(
+        db,
+        actor_id=user.id,
+        action="invite.redeemed",
+        target=invite.code,
+        meta={"token": data.invite_token},
+        request=request,
+    )
 
     await db.commit()
     await db.refresh(user)
     return user
+
+
+@router.post("/request-account", status_code=200)
+async def request_account(
+    data: AccountRequestCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public: ask an admin for an account. Always returns the same generic
+    response so the endpoint can't be used to enumerate emails."""
+    generic = {"message": "Request received. An administrator will review it."}
+
+    existing_user = await db.execute(select(User).where(User.email == data.email))
+    if existing_user.scalar_one_or_none():
+        return generic
+
+    pending = await db.execute(
+        select(AccountRequest).where(
+            AccountRequest.email == data.email,
+            AccountRequest.status == "pending",
+        )
+    )
+    if pending.scalar_one_or_none():
+        return generic
+
+    total_pending = await db.execute(
+        select(func.count()).select_from(AccountRequest).where(
+            AccountRequest.status == "pending"
+        )
+    )
+    if total_pending.scalar_one() >= 100:
+        return generic
+
+    req = AccountRequest(email=data.email, note=data.note)
+    db.add(req)
+    await db.flush()
+    await write_audit(
+        db,
+        actor_id=None,
+        action="account_request.created",
+        target=data.email,
+        request=request,
+    )
+    return generic
 
 
 @router.post("/login", response_model=TokenResponse)

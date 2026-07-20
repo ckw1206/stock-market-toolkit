@@ -18,6 +18,7 @@ import { toast } from "@/components/ui/sonner";
 import { fetchLogs, type LogEntry } from "@/api/adminLogsApi";
 import { fetchAuditLogs, type AuditLogEntry } from "@/api/adminAuditLogsApi";
 import { fetchAccessLogs, type AccessLogEntry } from "@/api/adminAccessLogsApi";
+import { copyText } from "@/lib/clipboard";
 
 /* ── System log helpers ────────────────────────────────────── */
 
@@ -101,10 +102,14 @@ function StatusBadge({ status }: { status: number }) {
 
 function CopyButton({ data }: { data: unknown }) {
   const { t } = useTranslation();
-  const handleCopy = (e: React.MouseEvent) => {
+  const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-    toast(t("logs.copy.toastTitle"), { description: t("logs.copy.toastDescription") });
+    const ok = await copyText(JSON.stringify(data, null, 2));
+    if (ok) {
+      toast(t("logs.copy.toastTitle"), { description: t("logs.copy.toastDescription") });
+    } else {
+      toast.error(t("logs.copy.errorTitle"), { description: t("logs.copy.errorDescription") });
+    }
   };
 
   return (

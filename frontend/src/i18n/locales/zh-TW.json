@@ -12,23 +12,27 @@
     "holdings": "持股"
   },
   "adminInvite": {
-    "title": "邀請碼",
-    "subtitle": "為新使用者註冊產生並管理邀請碼",
-    "generateCode": "產生邀請碼",
+    "title": "邀請管理",
+    "subtitle": "產生邀請連結並審核帳號申請",
+    "generateCode": "產生連結",
     "form": {
-      "dialogTitle": "產生邀請碼",
-      "dialogDescription": "為新使用者註冊建立新的邀請碼",
+      "dialogTitle": "產生邀請連結",
+      "dialogDescription": "為新使用者註冊建立新的邀請連結",
       "expiresLabel": "到期天數（天）",
       "expiresHint": "邀請碼將在這麼多天後到期（1-365）",
       "cancel": "取消",
       "generating": "產生中…",
-      "submit": "產生邀請碼",
-      "validationRange": "到期天數必須介於 1 到 365 天之間"
+      "submit": "產生邀請連結",
+      "validationRange": "到期天數必須介於 1 到 365 天之間",
+      "emailLabel": "電子郵件（選填）",
+      "emailHint": "將此邀請與電子郵件地址關聯"
     },
     "copy": {
-      "ariaLabel": "複製邀請碼"
+      "ariaLabel": "複製連結",
+      "errorTitle": "複製失敗",
+      "errorDescription": "無法複製到剪貼簿，請嘗試手動選取並複製。"
     },
-    "newCodeLabel": "新邀請碼：",
+    "newCodeLabel": "新邀請連結：",
     "empty": {
       "message": "尚無邀請碼",
       "action": "產生您的第一個邀請碼"
@@ -40,15 +44,35 @@
       "created": "建立於 {{date}}",
       "expires": "到期於 {{date}}",
       "usedBy": "由 {{user}} 使用",
-      "deactivateAriaLabel": "停用邀請碼"
+      "deactivateAriaLabel": "停用邀請碼",
+      "deleteAriaLabel": "永久刪除邀請碼"
     },
     "confirm": {
-      "deactivate": "要停用此邀請碼嗎？"
+      "deactivate": "要停用此邀請碼嗎？",
+      "delete": "要永久刪除此邀請碼嗎？此動作無法復原。"
     },
     "errors": {
       "create": "建立邀請碼失敗",
       "load": "載入邀請碼失敗",
-      "deactivate": "停用邀請碼失敗"
+      "deactivate": "停用邀請碼失敗",
+      "delete": "刪除邀請碼失敗"
+    },
+    "requests": {
+      "title": "帳號申請",
+      "approve": "核准",
+      "deny": "拒絕",
+      "approvedLinkLabel": "邀請連結：",
+      "status": {
+        "approved": "已核准",
+        "denied": "已拒絕"
+      },
+      "confirm": {
+        "deny": "確定拒絕此帳號申請？"
+      },
+      "errors": {
+        "approve": "核准申請失敗",
+        "deny": "拒絕申請失敗"
+      }
     }
   },
   "alerts": {
@@ -285,7 +309,7 @@
     },
     "menu": {
       "logViewer": "日誌檢視器",
-      "invitationCodes": "邀請碼",
+      "invitations": "邀請管理",
       "openNavigation": "開啟導覽選單"
     },
     "theme": {
@@ -437,7 +461,9 @@
     "copy": {
       "toastTitle": "已複製",
       "toastDescription": "日誌項目已複製到剪貼簿",
-      "buttonTitle": "以 JSON 格式複製項目"
+      "buttonTitle": "以 JSON 格式複製項目",
+      "errorTitle": "複製失敗",
+      "errorDescription": "無法複製到剪貼簿，請嘗試手動選取並複製。"
     },
     "tabs": {
       "system": "系統",
@@ -499,6 +525,17 @@
     "errors": {
       "passwordTooShort": "密碼長度至少須為 8 個字元",
       "failed": "註冊失敗"
+    },
+    "requestFallback": "改為申請帳號",
+    "request": {
+      "title": "申請帳號",
+      "subtitle": "本站採邀請制註冊。留下您的電子郵件，管理員將審核您的申請。",
+      "noteLabel": "留言（選填）",
+      "notePlaceholder": "告訴管理員您是誰",
+      "submit": "送出申請",
+      "submitting": "送出中…",
+      "received": "已收到申請。管理員審核後將寄送邀請連結給您。",
+      "failed": "申請送出失敗，請再試一次。"
     }
   },
   "settings": {
