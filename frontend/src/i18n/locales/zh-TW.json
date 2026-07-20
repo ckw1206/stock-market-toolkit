@@ -44,15 +44,18 @@
       "created": "建立於 {{date}}",
       "expires": "到期於 {{date}}",
       "usedBy": "由 {{user}} 使用",
-      "deactivateAriaLabel": "停用邀請碼"
+      "deactivateAriaLabel": "停用邀請碼",
+      "deleteAriaLabel": "永久刪除邀請碼"
     },
     "confirm": {
-      "deactivate": "要停用此邀請碼嗎？"
+      "deactivate": "要停用此邀請碼嗎？",
+      "delete": "要永久刪除此邀請碼嗎？此動作無法復原。"
     },
     "errors": {
       "create": "建立邀請碼失敗",
       "load": "載入邀請碼失敗",
-      "deactivate": "停用邀請碼失敗"
+      "deactivate": "停用邀請碼失敗",
+      "delete": "刪除邀請碼失敗"
     },
     "requests": {
       "title": "帳號申請",

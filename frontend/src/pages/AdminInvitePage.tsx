@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, Check, X, Plus } from "lucide-react";
+import { Copy, Check, X, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -351,6 +351,23 @@ export default function AdminInvitePage() {
     }
   };
 
+  const handleDelete = async (codeId: number) => {
+    if (!confirm(t("adminInvite.confirm.delete"))) return;
+    try {
+      const res = await fetch(API + "/api/admin/invite-codes/" + codeId + "/permanent", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("access_token") ?? ""}` },
+      });
+      if (!res.ok) {
+        const data = await res.json() as { detail?: string };
+        throw new Error(data.detail || t("adminInvite.errors.delete"));
+      }
+      void loadCodes();
+    } catch (err: unknown) {
+      setError((err as Error).message || t("adminInvite.errors.delete"));
+    }
+  };
+
   const handleLinkCreated = (link: string) => {
     setNewLink(link);
     void loadCodes();
@@ -456,7 +473,7 @@ export default function AdminInvitePage() {
                     )}
                   </div>
                 </div>
-                {code.is_active && !isExpired(code.expires_at) && (
+                {code.is_active && !isExpired(code.expires_at) ? (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -466,7 +483,17 @@ export default function AdminInvitePage() {
                   >
                     <X className="size-4" />
                   </Button>
-                )}
+                ) : (!code.is_active || isExpired(code.expires_at)) && !code.used_by ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(code.id)}
+                    className="text-muted-foreground hover:text-destructive shrink-0"
+                    aria-label={t("adminInvite.table.deleteAriaLabel")}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
           ))}

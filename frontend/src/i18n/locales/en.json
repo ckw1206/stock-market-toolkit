@@ -44,15 +44,18 @@
       "created": "Created {{date}}",
       "expires": "Expires {{date}}",
       "usedBy": "Used by {{user}}",
-      "deactivateAriaLabel": "Deactivate code"
+      "deactivateAriaLabel": "Deactivate code",
+      "deleteAriaLabel": "Delete code permanently"
     },
     "confirm": {
-      "deactivate": "Deactivate this invitation code?"
+      "deactivate": "Deactivate this invitation code?",
+      "delete": "Permanently delete this invitation code? This cannot be undone."
     },
     "errors": {
       "create": "Failed to create invite code",
       "load": "Failed to load invite codes",
-      "deactivate": "Failed to deactivate code"
+      "deactivate": "Failed to deactivate code",
+      "delete": "Failed to delete invite code"
     },
     "requests": {
       "title": "Account Requests",

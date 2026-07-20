@@ -122,6 +122,60 @@ async def deactivate_invite_code(
     return None
 
 
+@router.delete("/invite-codes/{code_id}/permanent", status_code=204)
+async def permanent_delete_invite_code(
+    code_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Hard-delete an invite code. Only deletable when the link is dead
+    (deactivated or expired) and was never redeemed."""
+    invite = await db.get(InviteCode, code_id)
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invitation code not found")
+
+    now = datetime.now(timezone.utc)
+    expires_at = (
+        invite.expires_at.replace(tzinfo=timezone.utc)
+        if invite.expires_at.tzinfo is None
+        else invite.expires_at
+    )
+    is_expired = expires_at < now
+    is_live = invite.is_active and not is_expired
+    if invite.used_by is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete a redeemed invite code that has been used.",
+        )
+    if is_live:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete an active, unexpired invite code. Deactivate it first.",
+        )
+
+    # Null out invite_id on referencing account requests
+    result = await db.execute(
+        select(AccountRequest).where(AccountRequest.invite_id == code_id)
+    )
+    for ar in result.scalars():
+        ar.invite_id = None
+
+    code_value = invite.code
+    await db.delete(invite)
+    await db.commit()
+
+    await write_audit(
+        db,
+        actor_id=current_user.id,
+        action="invite.deleted",
+        target=code_value,
+        meta={"invite_id": code_id},
+        request=request,
+    )
+    return None
+
+
 @router.post("/invite-send", response_model=InviteSendResponse, status_code=201)
 async def send_invite(
     data: InviteSendRequest,
