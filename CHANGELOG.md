@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.21.0](https://github.com/ckw1206/stock-market-toolkit/compare/v0.20.4...v0.21.0) (2026-07-20)
+
+
+### Features
+
+* **holdings:** real-brokerage holdings ledger (/holdings + /api/portfolio) ([#334](https://github.com/ckw1206/stock-market-toolkit/issues/334)) ([e7fd9d2](https://github.com/ckw1206/stock-market-toolkit/commit/e7fd9d26fd75b22f07ffa1d19522274c0c92894a))
+* invite links and account requests ([#336](https://github.com/ckw1206/stock-market-toolkit/issues/336)) ([594c9cf](https://github.com/ckw1206/stock-market-toolkit/commit/594c9cfcc3b246976acd85a71d9239202260abcd))
+
 ## [0.20.4](https://github.com/ckw1206/stock-market-toolkit/compare/v0.20.3...v0.20.4) (2026-07-17)
 
 
