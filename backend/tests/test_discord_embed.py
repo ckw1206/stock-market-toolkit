@@ -22,8 +22,10 @@ class TestDiscordEmbed:
         assert embed["title"] == "🔔 Price Alert: 00631L.TW"  # no raw "multi"
         field_names = [f["name"] for f in embed["fields"]]
         assert "Threshold" not in field_names  # no bogus 0.0%
-        condition_field = next(f for f in embed["fields"] if f["name"] == "Condition")
-        assert condition_field["value"] == "% Change crosses above 2.0%"
+        assert "Condition" not in field_names  # promoted out of the inline field
+        # Matched condition is bold + full-width at the top of the description
+        assert "🎯 **% Change crosses above 2.0%**" in embed["description"]
+        assert "Current price: $37.23" in embed["description"]
 
     def test_legacy_embed_unchanged(self):
         embed = _build_discord_embed(
