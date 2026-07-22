@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.22.0](https://github.com/ckw1206/stock-market-toolkit/compare/v0.21.0...v0.22.0) (2026-07-22)
+
+
+### Features
+
+* **alerts:** make firing condition prominent in Discord alert ([#337](https://github.com/ckw1206/stock-market-toolkit/issues/337)) ([6b7bb61](https://github.com/ckw1206/stock-market-toolkit/commit/6b7bb6193ffde1729856b751a483aca59b17755a))
+
+
+### Bug Fixes
+
+* **dashboard:** compute day change from official previous close ([#339](https://github.com/ckw1206/stock-market-toolkit/issues/339)) ([12da3a2](https://github.com/ckw1206/stock-market-toolkit/commit/12da3a22cfbeb458803a6d44517f4778e2e185fc))
+
 ## [0.21.0](https://github.com/ckw1206/stock-market-toolkit/compare/v0.20.4...v0.21.0) (2026-07-20)
 
 
