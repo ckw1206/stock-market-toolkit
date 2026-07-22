@@ -92,11 +92,15 @@ def _build_discord_embed(
     else:
         price_change_str = ""
 
+    price_line = f"Current price: {price_str} {price_change_str}"
+
     if conditions_text is not None:
         title = f"🔔 Price Alert: {symbol}"
-        condition_fields = [
-            {"name": "Condition", "value": conditions_text, "inline": True},
-        ]
+        # Bold, full-width condition line(s) at the top — the reason the alert fired
+        # should be the most prominent thing after the title.
+        highlighted = "\n".join(f"🎯 **{line}**" for line in conditions_text.split("\n"))
+        description = f"{highlighted}\n{price_line}"
+        condition_fields = []
     else:
         condition_label = CONDITION_LABELS.get(condition_type, condition_type)
         threshold_str = (
@@ -105,6 +109,7 @@ def _build_discord_embed(
             else f"{threshold:.1f}%"
         )
         title = f"🔔 Price Alert: {symbol} {condition_label}"
+        description = price_line
         condition_fields = [
             {"name": "Condition", "value": condition_type, "inline": True},
             {"name": "Threshold", "value": threshold_str, "inline": True},
@@ -112,7 +117,7 @@ def _build_discord_embed(
 
     embed = {
         "title": title,
-        "description": f"Current price: {price_str} {price_change_str}",
+        "description": description,
         "color": color,
         "fields": condition_fields
         + [
