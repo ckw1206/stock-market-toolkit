@@ -49,6 +49,7 @@ async def get_stock_info(
         sector=info.get("sector"),
         industry=info.get("industry"),
         price=info.get("currentPrice") or info.get("regularMarketPrice", 0),
+        previous_close=info.get("regularMarketPreviousClose") or info.get("previousClose"),
         currency=info.get("currency"),
         market_cap=info.get("marketCap"),
         sharesOutstanding=info.get("sharesOutstanding"),

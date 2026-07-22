@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Star } from "lucide-react";
-import { getStock } from "@/api/stockApi";
+import { getStockInfo } from "@/api/stockApi";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import SymbolSearch from "@/components/common/SymbolSearch";
 import { fmt, pct } from "@/lib/format";
@@ -13,7 +13,8 @@ interface Quote {
 }
 
 // One quote per watched symbol. There's no batch-quote endpoint, so reuse
-// getStock per symbol (short range is enough for last close + day change).
+// getStockInfo per symbol — it carries the official price + previous close, so
+// the day change matches every other card (chart-bar diffs vary by interval).
 function useWatchlistQuotes(symbols: string[]) {
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const key = symbols.join(",");
@@ -21,16 +22,14 @@ function useWatchlistQuotes(symbols: string[]) {
     if (!symbols.length) return;
     let cancelled = false;
     (async () => {
-      const results = await Promise.allSettled(symbols.map((s) => getStock(s, "5d")));
+      const results = await Promise.allSettled(symbols.map((s) => getStockInfo(s)));
       if (cancelled) return;
       const next: Record<string, Quote> = {};
       results.forEach((r, i) => {
         if (r.status !== "fulfilled") return;
-        const close = r.value.close;
-        const last = close[close.length - 1];
-        const prev = close[close.length - 2] ?? last;
-        if (last == null) return;
-        next[symbols[i]] = { price: last, changePct: prev ? ((last - prev) / prev) * 100 : 0 };
+        const { price, previous_close: prev } = r.value;
+        if (price == null) return;
+        next[symbols[i]] = { price, changePct: prev ? ((price - prev) / prev) * 100 : 0 };
       });
       setQuotes(next);
     })();

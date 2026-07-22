@@ -47,6 +47,7 @@ class StockInfoResponse(BaseModel):
     sector: Optional[str]
     industry: Optional[str]
     price: float
+    previous_close: Optional[float] = None
     currency: Optional[str]
     market_cap: Optional[int]
     sharesOutstanding: Optional[int]
