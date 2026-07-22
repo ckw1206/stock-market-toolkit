@@ -7,8 +7,10 @@ import { cn } from "@/lib/utils";
 
 export default function StockInfoCard({ info, stock, className }: { info: StockInfo; stock: StockData; className?: string }) {
   const { t } = useTranslation();
-  const currentPrice = stock.close[stock.close.length - 1];
-  const prevPrice = stock.close[stock.close.length - 2] || currentPrice;
+  // Day change is always today's move vs the official previous close, never the
+  // last chart bar (whose interval varies by period: 5m for 1d, 15m for 5d…).
+  const currentPrice = info.price ?? stock.close[stock.close.length - 1];
+  const prevPrice = info.previous_close ?? stock.close[stock.close.length - 2] ?? currentPrice;
   const priceChange = currentPrice - prevPrice;
   const priceChangePct = prevPrice ? (priceChange / prevPrice) * 100 : 0;
   const tone: StatTone = priceChange >= 0 ? "up" : "down";

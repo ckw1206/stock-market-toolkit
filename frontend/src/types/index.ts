@@ -35,6 +35,7 @@ export interface StockInfo {
   sector?: string;
   industry?: string;
   price: number;
+  previous_close: number | null;
   currency?: string;
   market_cap: number | null;
   trailing_pe: number | null;
